@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Guard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">🛡 System Guard</div>
+            <div class="pc-status">
+                <span class="dot online"></span>
+                <span id="pcName">PC-Desktop</span>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" data-tab="dashboard">📊 Dashboard</button>
+            <button class="tab" data-tab="controls">⚙️ Controls</button>
+            <button class="tab" data-tab="files">📁 Files</button>
+            <button class="tab" data-tab="license">🔑 License</button>
+        </div>
+
+        <!-- Dashboard -->
+        <div id="dashboard" class="tab-content active">
+            <div class="card">
+                <div class="card-title">CPU</div>
+                <div class="metric"><span id="cpuLoad">--</span>%</div>
+                <div class="bar"><div class="fill" id="cpuBar"></div></div>
+            </div>
+            <div class="card">
+                <div class="card-title">RAM</div>
+                <div class="metric"><span id="ramUsed">--</span> / <span id="ramTotal">--</span> GB</div>
+                <div class="bar"><div class="fill" id="ramBar"></div></div>
+            </div>
+            <div class="card">
+                <div class="card-title">GPU</div>
+                <div class="metric"><span id="gpuLoad">--</span>%</div>
+                <div class="metric small"><span id="gpuTemp">--</span>°C</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Network</div>
+                <div class="metric">↓ <span id="netDown">--</span> Mbps</div>
+                <div class="metric">↑ <span id="netUp">--</span> Mbps</div>
+            </div>
+            <button class="btn" onclick="refreshDashboard()">🔄 Refresh</button>
+        </div>
+
+        <!-- Controls -->
+        <div id="controls" class="tab-content">
+            <div class="grid-2">
+                <button class="btn danger" onclick="sendCommand('/shutdown')">⏻ Shutdown</button>
+                <button class="btn warning" onclick="sendCommand('/restart')">🔄 Restart</button>
+                <button class="btn" onclick="sendCommand('/sleep')">🌙 Sleep</button>
+                <button class="btn" onclick="sendCommand('/lock')">🔒 Lock</button>
+            </div>
+            <div class="card">
+                <div class="card-title">Volume</div>
+                <input type="range" min="0" max="100" value="50" onchange="setVolume(this.value)">
+                <button class="btn small" onclick="sendCommand('/mute')">🔇 Mute</button>
+            </div>
+            <div class="card">
+                <div class="card-title">Brightness</div>
+                <input type="range" min="0" max="100" value="80" onchange="setBrightness(this.value)">
+            </div>
+            <div class="card">
+                <div class="card-title">Media</div>
+                <div class="grid-3">
+                    <button class="btn small" onclick="sendCommand('/prev')">⏮</button>
+                    <button class="btn small" onclick="sendCommand('/play')">▶</button>
+                    <button class="btn small" onclick="sendCommand('/next')">⏭</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Files -->
+        <div id="files" class="tab-content">
+            <div class="card">
+                <div class="card-title">File Explorer</div>
+                <input type="text" id="filePath" value="C:\" placeholder="Path" class="input">
+                <button class="btn" onclick="listFiles()">📂 List</button>
+                <div id="fileList"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Upload to PC</div>
+                <input type="file" id="uploadFile" class="input">
+                <button class="btn" onclick="uploadFile()">📤 Upload</button>
+            </div>
+        </div>
+
+        <!-- Terminal -->
+        <div class="card">
+            <div class="card-title">💻 Terminal</div>
+            <div style="display:flex; gap:8px;">
+                <input type="text" id="terminal-input" placeholder="Type command..." class="input" style="flex:1;">
+                <button class="btn small" onclick="executeTerminal()">Run</button>
+            </div>
+            <pre id="terminal-output" style="background:#000; color:#34D399; padding:10px; border-radius:8px; margin-top:8px; max-height:300px; overflow-y:auto; font-size:11px;">Connected. Type a command...</pre>
+        </div>
+        <!-- License -->
+        <div id="license" class="tab-content">
+            <div class="card">
+                <div class="card-title">License Status</div>
+                <div class="metric large" id="licenseStatus">FREE</div>
+                <div id="licenseExpiry"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Buy Pro</div>
+                <button class="btn gold" onclick="buyLicense('monthly')">⭐ Monthly — 300 ⭐ ($5)</button>
+                <button class="btn gold" onclick="buyLicense('yearly')">⭐ Yearly — 1 800 ⭐ ($30)</button>
+                <button class="btn gold" onclick="buyLicense('lifetime')">⭐ Lifetime — 3 000 ⭐ ($50)</button>
+            </div>
+        </div>
+
+        <!-- Console Output -->
+        <div class="console" id="console"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
