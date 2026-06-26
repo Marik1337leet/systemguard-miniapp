@@ -1,66 +1,94 @@
-const tg = window.Telegram.WebApp;
-tg.expand();
-tg.ready();
+let BOT_TOKEN = localStorage.getItem('sg_token') || '';
+let CHAT_ID = localStorage.getItem('sg_chatid') || '';
 
-let ws;
-const WS_URL = 'ws://192.168.0.102'; // Замени на IP твоего ПК
+// Автозаполнение полей
+document.getElementById('botToken').value = BOT_TOKEN;
+document.getElementById('chatId').value = CHAT_ID;
 
-// Connect WebSocket
-function connectWS() {
-    ws = new WebSocket(WS_URL);
-    ws.onopen = () => log('✓ Connected to PC');
-    ws.onmessage = (e) => { document.getElementById('terminal-output').textContent = e.data; };
-    ws.onclose = () => { log('✗ Disconnected'); setTimeout(connectWS, 3000); };
-    ws.onerror = () => log('✗ Connection error');
+// Автоподключение если есть сохранённые данные
+if (BOT_TOKEN && CHAT_ID) {
+    connect();
 }
-connectWS();
 
-// Send command
-function send(cmd) {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(cmd);
-        log(`> ${cmd}`);
+function connect() {
+    BOT_TOKEN = document.getElementById('botToken').value.trim();
+    CHAT_ID = document.getElementById('chatId').value.trim();
+    if (BOT_TOKEN && CHAT_ID) {
+        localStorage.setItem('sg_token', BOT_TOKEN);
+        localStorage.setItem('sg_chatid', CHAT_ID);
+        updateConnectionStatus(true);
+        log('✓ Connected to bot');
+        refresh();
     } else {
-        log('✗ Not connected');
+        updateConnectionStatus(false);
+        log('✗ Enter Bot Token and Chat ID');
     }
 }
 
-// Quick commands
-function refreshDashboard() { send('/status'); }
-function getProcesses() { send('/processes'); }
-function getInfo() { send('/info'); }
-function shutdown() { send('/shutdown'); }
-function restart() { send('/restart'); }
-function sleep() { send('/sleep'); }
-function lockPC() { send('/lock'); }
-function setVolume(v) { send(`/volume ${v}`); }
-function setBrightness(v) { send(`/brightness ${v}`); }
-function media(cmd) { send(cmd); }
+function updateConnectionStatus(online) {
+    const el = document.getElementById('connectionStatus');
+    if (online) {
+        el.innerHTML = '<span class="status-dot online"></span> Connected';
+        el.style.color = '#34D399';
+    } else {
+        el.innerHTML = '<span class="status-dot offline"></span> Offline';
+        el.style.color = '#FB7185';
+    }
+}
 
-// Terminal execute
-function executeTerminal() {
-    const input = document.getElementById('terminal-input');
+async function send(cmd) {
+    if (!BOT_TOKEN || !CHAT_ID) { 
+        log('✗ Not connected. Enter Bot Token and Chat ID.'); 
+        return; 
+    }
+    log('> ' + cmd);
+    try {
+        const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: CHAT_ID, text: cmd })
+        });
+        const data = await res.json();
+        if (data.ok) {
+            log('✓ Sent to PC');
+        } else {
+            log('✗ Bot error: ' + (data.description || 'Unknown'));
+        }
+    } catch(e) { 
+        log('✗ Network error: ' + e.message); 
+    }
+}
+
+function sendCmd() {
+    const input = document.getElementById('cmdInput');
     const cmd = input.value.trim();
     if (cmd) { send(cmd); input.value = ''; }
 }
-document.getElementById('terminal-input')?.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') executeTerminal();
-});
+
+async function refresh() {
+    if (!BOT_TOKEN || !CHAT_ID) return;
+    document.getElementById('sysInfo').textContent = 'Loading...';
+    document.getElementById('procList').textContent = 'Loading...';
+    send('/status');
+    send('/processes');
+}
+
+function log(msg) {
+    const l = document.getElementById('log');
+    const time = new Date().toLocaleTimeString();
+    l.innerHTML = '[' + time + '] ' + msg + '<br>' + l.innerHTML;
+}
 
 // Tabs
-document.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        tab.classList.add('active');
-        document.getElementById(tab.dataset.tab).classList.add('active');
-    });
+document.querySelectorAll('.tab').forEach(t => {
+    t.onclick = () => {
+        document.querySelectorAll('.tab,.tab-content').forEach(e => e.classList.remove('active'));
+        t.classList.add('active');
+        document.getElementById(t.dataset.tab).classList.add('active');
+    };
 });
 
-// Log
-function log(msg) {
-    const c = document.getElementById('console');
-    const time = new Date().toLocaleTimeString();
-    c.innerHTML = `[${time}] ${msg}\n` + c.innerHTML;
-    if (c.children.length > 50) c.removeChild(c.lastChild);
+// Автоподключение при загрузке
+if (BOT_TOKEN && CHAT_ID) {
+    connect();
 }
