@@ -1,126 +1,317 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>System Guard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SystemGuard Remote</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-    <div id="app">
-        <!-- Header -->
-        <div class="header">
-            <div class="logo">🛡 System Guard</div>
-            <div class="pc-status">
-                <span class="dot online"></span>
-                <span id="pcName">PC-Desktop</span>
+<div id="app">
+    <!-- ═══ Header ═══ -->
+    <header class="header">
+        <div class="brand">
+            <span class="brand-shield">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1 1 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+            </span>
+            <div>
+                <div class="brand-name">SystemGuard</div>
+                <div class="brand-sub">remote control</div>
             </div>
         </div>
+        <div class="pc-status" id="pcStatus">
+            <span class="dot" id="statusDot"></span>
+            <span id="modeLabel">Telegram</span>
+        </div>
+    </header>
 
-        <!-- Tabs -->
-        <div class="tabs">
-            <button class="tab active" data-tab="dashboard">📊 Dashboard</button>
-            <button class="tab" data-tab="controls">⚙️ Controls</button>
-            <button class="tab" data-tab="files">📁 Files</button>
-            <button class="tab" data-tab="license">🔑 License</button>
-        </div>
-
-        <!-- Dashboard -->
-        <div id="dashboard" class="tab-content active">
-            <div class="card">
-                <div class="card-title">CPU</div>
-                <div class="metric"><span id="cpuLoad">--</span>%</div>
-                <div class="bar"><div class="fill" id="cpuBar"></div></div>
-            </div>
-            <div class="card">
-                <div class="card-title">RAM</div>
-                <div class="metric"><span id="ramUsed">--</span> / <span id="ramTotal">--</span> GB</div>
-                <div class="bar"><div class="fill" id="ramBar"></div></div>
-            </div>
-            <div class="card">
-                <div class="card-title">GPU</div>
-                <div class="metric"><span id="gpuLoad">--</span>%</div>
-                <div class="metric small"><span id="gpuTemp">--</span>°C</div>
-            </div>
-            <div class="card">
-                <div class="card-title">Network</div>
-                <div class="metric">↓ <span id="netDown">--</span> Mbps</div>
-                <div class="metric">↑ <span id="netUp">--</span> Mbps</div>
-            </div>
-            <button class="btn" onclick="refreshDashboard()">🔄 Refresh</button>
-        </div>
-
-        <!-- Controls -->
-        <div id="controls" class="tab-content">
-            <div class="grid-2">
-                <button class="btn danger" onclick="sendCommand('/shutdown')">⏻ Shutdown</button>
-                <button class="btn warning" onclick="sendCommand('/restart')">🔄 Restart</button>
-                <button class="btn" onclick="sendCommand('/sleep')">🌙 Sleep</button>
-                <button class="btn" onclick="sendCommand('/lock')">🔒 Lock</button>
-            </div>
-            <div class="card">
-                <div class="card-title">Volume</div>
-                <input type="range" min="0" max="100" value="50" onchange="setVolume(this.value)">
-                <button class="btn small" onclick="sendCommand('/mute')">🔇 Mute</button>
-            </div>
-            <div class="card">
-                <div class="card-title">Brightness</div>
-                <input type="range" min="0" max="100" value="80" onchange="setBrightness(this.value)">
-            </div>
-            <div class="card">
-                <div class="card-title">Media</div>
-                <div class="grid-3">
-                    <button class="btn small" onclick="sendCommand('/prev')">⏮</button>
-                    <button class="btn small" onclick="sendCommand('/play')">▶</button>
-                    <button class="btn small" onclick="sendCommand('/next')">⏭</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Files -->
-        <div id="files" class="tab-content">
-            <div class="card">
-                <div class="card-title">File Explorer</div>
-                <input type="text" id="filePath" value="C:\" placeholder="Path" class="input">
-                <button class="btn" onclick="listFiles()">📂 List</button>
-                <div id="fileList"></div>
-            </div>
-            <div class="card">
-                <div class="card-title">Upload to PC</div>
-                <input type="file" id="uploadFile" class="input">
-                <button class="btn" onclick="uploadFile()">📤 Upload</button>
-            </div>
-        </div>
-
-        <!-- Terminal -->
-        <div class="card">
-            <div class="card-title">💻 Terminal</div>
-            <div style="display:flex; gap:8px;">
-                <input type="text" id="terminal-input" placeholder="Type command..." class="input" style="flex:1;">
-                <button class="btn small" onclick="executeTerminal()">Run</button>
-            </div>
-            <pre id="terminal-output" style="background:#000; color:#34D399; padding:10px; border-radius:8px; margin-top:8px; max-height:300px; overflow-y:auto; font-size:11px;">Connected. Type a command...</pre>
-        </div>
-        <!-- License -->
-        <div id="license" class="tab-content">
-            <div class="card">
-                <div class="card-title">License Status</div>
-                <div class="metric large" id="licenseStatus">FREE</div>
-                <div id="licenseExpiry"></div>
-            </div>
-            <div class="card">
-                <div class="card-title">Buy Pro</div>
-                <button class="btn gold" onclick="buyLicense('monthly')">⭐ Monthly — 300 ⭐ ($5)</button>
-                <button class="btn gold" onclick="buyLicense('yearly')">⭐ Yearly — 1 800 ⭐ ($30)</button>
-                <button class="btn gold" onclick="buyLicense('lifetime')">⭐ Lifetime — 3 000 ⭐ ($50)</button>
-            </div>
-        </div>
-
-        <!-- Console Output -->
-        <div class="console" id="console"></div>
+    <!-- ═══ Env banner (demo outside Telegram) ═══ -->
+    <div class="banner hidden" id="envBanner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        <span>Откройте через кнопку <b>🌐 Web App</b> в боте — команды работают только внутри Telegram при включённом ПК.</span>
     </div>
 
-    <script src="app.js"></script>
+    <!-- ═══ Dashboard ═══ -->
+    <section id="tab-dashboard" class="tab-page active">
+        <div class="card hero">
+            <div class="hero-row">
+                <div>
+                    <div class="card-title">Быстрый статус</div>
+                    <div class="hero-hint">Ответ бота придёт в чат — там же скриншоты и файлы</div>
+                </div>
+                <button class="btn primary sm" data-action="status">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                    Статус
+                </button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+                Питание
+            </div>
+            <div class="grid-2">
+                <button class="btn danger" data-action="shutdown">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></svg>
+                    Выключить
+                </button>
+                <button class="btn warning" data-action="restart">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                    Перезагрузка
+                </button>
+                <button class="btn ghost" data-action="sleep">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                    Сон
+                </button>
+                <button class="btn ghost" data-action="lock">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    Блокировать
+                </button>
+            </div>
+            <button class="btn ghost sm full" data-action="cancel">Отменить таймер выключения</button>
+        </div>
+
+        <div class="grid-2">
+            <div class="card stat" data-goto="control">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                <span>Звук и медиа</span>
+            </div>
+            <div class="card stat" data-goto="screen">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                <span>Экран и камера</span>
+            </div>
+            <div class="card stat" data-goto="files">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                <span>Файлы</span>
+            </div>
+            <div class="card stat" data-goto="terminal">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
+                <span>Терминал</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Система
+            </div>
+            <div class="grid-2">
+                <button class="btn ghost sm" data-action="ip">🌐 IP</button>
+                <button class="btn ghost sm" data-action="ping">📶 Ping</button>
+                <button class="btn ghost sm" data-action="uptime">⏱ Uptime</button>
+                <button class="btn ghost sm" data-action="battery">🔋 Батарея</button>
+                <button class="btn ghost sm" data-action="free">💾 Диски</button>
+                <button class="btn ghost sm" data-action="apps">📱 Приложения</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══ Control ═══ -->
+    <section id="tab-control" class="tab-page">
+        <div class="card">
+            <div class="card-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                Громкость · <span id="volVal">50</span>%
+            </div>
+            <input type="range" min="0" max="100" value="50" id="volRange">
+            <div class="row">
+                <button class="btn ghost sm" data-action="volume" data-arg="down">−10</button>
+                <button class="btn primary sm" id="volApply">Применить</button>
+                <button class="btn ghost sm" data-action="mute">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" x2="16" y1="9" y2="15"/><line x1="16" x2="22" y1="9" y2="15"/></svg>
+                    Мут
+                </button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                Яркость · <span id="briVal">80</span>%
+            </div>
+            <input type="range" min="0" max="100" value="80" id="briRange">
+            <button class="btn primary sm full" id="briApply">Применить яркость</button>
+        </div>
+
+        <div class="card">
+            <div class="card-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+                Медиа
+            </div>
+            <div class="grid-3">
+                <button class="btn ghost" data-action="prev">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" x2="5" y1="19" y2="5"/></svg>
+                </button>
+                <button class="btn primary" data-action="play">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+                </button>
+                <button class="btn ghost" data-action="next">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" x2="19" y1="5" y2="19"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                Быстрые действия
+            </div>
+            <div class="grid-2">
+                <button class="btn ghost sm" data-action="clean">🧹 Очистка</button>
+                <button class="btn ghost sm" data-action="ram">⚡ RAM</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══ Screen ═══ -->
+    <section id="tab-screen" class="tab-page">
+        <div class="card">
+            <div class="card-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="12" x="3" y="4" rx="2" ry="2"/><line x1="2" x2="22" y1="20" y2="20"/></svg>
+                Экран ПК
+            </div>
+            <p class="hint">Фото и стрим приходят в чат с ботом.</p>
+            <div class="grid-2">
+                <button class="btn primary" data-action="screenshot">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    Скриншот
+                </button>
+                <button class="btn ghost" data-action="cam">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>
+                    Камера
+                </button>
+                <button class="btn ghost" data-action="stream">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    Стрим
+                </button>
+                <button class="btn danger" data-action="stop">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><rect x="9" y="9" width="6" height="6"/></svg>
+                    Стоп
+                </button>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                Приложения
+            </div>
+            <div class="row">
+                <input type="text" id="openName" class="input" placeholder="chrome, steam, notepad…">
+                <button class="btn primary sm" id="openBtn">Открыть</button>
+            </div>
+            <div class="row">
+                <input type="text" id="closeName" class="input" placeholder="имя процесса…">
+                <button class="btn danger sm" id="closeBtn">Закрыть</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══ Files ═══ -->
+    <section id="tab-files" class="tab-page">
+        <div class="card">
+            <div class="card-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                Проводник
+            </div>
+            <div class="row">
+                <input type="text" id="lsPath" class="input" value="C:\" placeholder="C:\">
+                <button class="btn primary sm" id="lsBtn">Список</button>
+            </div>
+            <div class="chips">
+                <button class="chip" data-ls="C:\">C:\</button>
+                <button class="chip" data-ls="D:\">D:\</button>
+                <button class="chip" data-ls="">Desktop</button>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                Скачать с ПК
+            </div>
+            <div class="row">
+                <input type="text" id="getPath" class="input" placeholder="C:\file.txt">
+                <button class="btn primary sm" id="getBtn">Получить</button>
+            </div>
+            <p class="hint">Отправка файла <b>на ПК</b> — просто прикрепите файл в чате с ботом, он сохранится в Desktop\TG Downloads.</p>
+        </div>
+    </section>
+
+    <!-- ═══ Terminal ═══ -->
+    <section id="tab-terminal" class="tab-page">
+        <div class="card">
+            <div class="card-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
+                Терминал (CMD, admin)
+            </div>
+            <div class="row">
+                <input type="text" id="cmdInput" class="input mono" placeholder="ipconfig, tasklist, dir C:\…">
+                <button class="btn primary sm" id="cmdBtn">Run</button>
+            </div>
+            <div class="chips">
+                <button class="chip" data-cmd="tasklist">tasklist</button>
+                <button class="chip" data-cmd="ipconfig">ipconfig</button>
+                <button class="chip" data-cmd="systeminfo">systeminfo</button>
+            </div>
+            <p class="hint">Вывод команды придёт в чат с ботом.</p>
+        </div>
+    </section>
+
+    <!-- ═══ License ═══ -->
+    <section id="tab-license" class="tab-page">
+        <div class="card hero">
+            <div class="card-title">⭐ SystemGuard Pro</div>
+            <p class="hint">Оплата — Telegram Stars. Ключ придёт в чат, вставьте его во вкладке «Лицензия» в приложении.</p>
+        </div>
+        <div class="plan">
+            <div><b>Monthly</b><span>30 дней</span></div>
+            <button class="btn gold sm" data-action="license" data-arg="monthly">300 ★</button>
+        </div>
+        <div class="plan">
+            <div><b>Half-Year</b><span>6 месяцев</span></div>
+            <button class="btn gold sm" data-action="license" data-arg="halfyear">1000 ★</button>
+        </div>
+        <div class="plan">
+            <div><b>Yearly</b><span>12 месяцев</span></div>
+            <button class="btn gold sm" data-action="license" data-arg="yearly">1800 ★</button>
+        </div>
+        <div class="plan featured">
+            <div><b>Lifetime</b><span>навсегда ♾</span></div>
+            <button class="btn gold sm" data-action="license" data-arg="lifetime">3000 ★</button>
+        </div>
+    </section>
+
+    <!-- ═══ Bottom nav ═══ -->
+    <nav class="tabbar">
+        <button class="tab active" data-tab="dashboard">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+            <span>Главная</span>
+        </button>
+        <button class="tab" data-tab="control">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/><line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/><line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/><line x1="2" x2="6" y1="14" y2="14"/><line x1="10" x2="14" y1="8" y2="8"/><line x1="18" x2="22" y1="16" y2="16"/></svg>
+            <span>Пульт</span>
+        </button>
+        <button class="tab" data-tab="screen">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="12" x="3" y="4" rx="2" ry="2"/><line x1="2" x2="22" y1="20" y2="20"/></svg>
+            <span>Экран</span>
+        </button>
+        <button class="tab" data-tab="files">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            <span>Файлы</span>
+        </button>
+        <button class="tab" data-tab="terminal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
+            <span>CMD</span>
+        </button>
+        <button class="tab" data-tab="license">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <span>Pro</span>
+        </button>
+    </nav>
+
+    <div class="toast-wrap" id="toasts"></div>
+</div>
+<script src="app.js"></script>
 </body>
 </html>
