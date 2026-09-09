@@ -214,6 +214,27 @@
         <div class="plan featured"><div><b>Lifetime</b><span>навсегда</span></div><button class="btn gold sm cmd" data-action="license" data-arg="lifetime">3000 Stars</button></div>
     </section>
 
+    <!-- ═══ SETTINGS ═══ -->
+    <section id="tab-settings" class="tab-page">
+        <div class="card">
+            <div class="card-title"><span data-icon="gear"></span>Live-обновление</div>
+            <div class="setrow"><span>Статы, сек</span><input type="number" id="setStatusSec" class="input num" min="1" max="30" step="0.5"></div>
+            <div class="setrow"><span>Скриншоты, сек</span><input type="number" id="setShotSec" class="input num" min="2" max="60" step="1"></div>
+            <div class="setrow"><span>Видео FPS (1–5)</span><input type="number" id="setFps" class="input num" min="1" max="5" step="1"></div>
+            <div class="setrow"><span>Качество JPEG</span><input type="number" id="setQ" class="input num" min="30" max="85" step="5"></div>
+            <div class="setrow"><span>Всё выполнять в live</span><button class="btn ghost sm" id="setPrefer">Да</button></div>
+            <p class="hint">«Всё в live: выкл» — команды снова пойдут через чат с ботом (relay).</p>
+        </div>
+        <div class="card">
+            <div class="card-title"><span data-icon="gear"></span>Данные</div>
+            <div class="row">
+                <button class="btn primary sm" id="setSave">Сохранить</button>
+                <button class="btn danger sm" id="setReset">Сбросить всё</button>
+            </div>
+            <div class="live-state" id="setInfo"></div>
+        </div>
+    </section>
+
     <nav class="tabbar">
         <button class="tab active" data-tab="live"><span data-icon="radio"></span><span>Live</span></button>
         <button class="tab" data-tab="control"><span data-icon="sliders"></span><span>Пульт</span></button>
@@ -221,6 +242,7 @@
         <button class="tab" data-tab="files"><span data-icon="folder"></span><span>Файлы</span></button>
         <button class="tab" data-tab="terminal"><span data-icon="terminal"></span><span>CMD</span></button>
         <button class="tab" data-tab="license"><span data-icon="star"></span><span>Pro</span></button>
+        <button class="tab" data-tab="settings"><span data-icon="gear"></span><span>Настр.</span></button>
     </nav>
 
     <div class="toast-wrap" id="toasts"></div>

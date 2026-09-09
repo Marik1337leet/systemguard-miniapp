@@ -43,7 +43,7 @@
         star: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
         sliders: '<line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/>',
         check: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
-        alert: '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>'
+        gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',        alert: '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>'
     };
     function svg(name) {
         return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (P[name] || P.info) + '</svg>';
@@ -92,6 +92,26 @@
     function load(k) {
         try { var v = localStorage.getItem(k); if (v) return v; } catch (e) {}
         return '';
+    }
+
+    /* ── Настройки (гибкая настройка WebApp) ──────────────── */
+    var S = { statusSec: 2.5, shotSec: 3, fps: 2, q: 50, preferLive: true };
+    function loadSettings() {
+        try {
+            var raw = localStorage.getItem('sg_cfg');
+            if (raw) {
+                var c = JSON.parse(raw);
+                if (c.statusSec >= 1 && c.statusSec <= 30) S.statusSec = c.statusSec;
+                if (c.shotSec >= 2 && c.shotSec <= 60) S.shotSec = c.shotSec;
+                if (c.fps >= 1 && c.fps <= 5) S.fps = c.fps;
+                if (c.q >= 30 && c.q <= 85) S.q = c.q;
+                if (typeof c.preferLive === 'boolean') S.preferLive = c.preferLive;
+            }
+        } catch (e) {}
+    }
+    function saveSettings() {
+        try { localStorage.setItem('sg_cfg', JSON.stringify(S)); } catch (e) {}
+        try { tg && tg.CloudStorage && tg.CloudStorage.setItem('sg_cfg', JSON.stringify(S)); } catch (e) {}
     }
 
     /* ── LIVE-клиент (прямой HTTPS до ПК) ─────────────────── */
@@ -169,12 +189,12 @@
                 self.api('/api/status', { timeout: 8000 }).then(function (s) {
                     if (s && s.ok !== false) self.renderStatus(s);
                 }).catch(function () {});
-            }, 2500);
+            }, Math.max(1000, S.statusSec * 1000));
             clearInterval(self.shotTimer);
             self.shotTimer = setInterval(function () {
                 if (!self.on || self.mjpeg) return;
                 self.refreshShot();
-            }, 3000);
+            }, Math.max(2000, S.shotSec * 1000));
         },
         renderStatus: function (s) {
             setText('liveMachine', s.machine || '—');
@@ -193,7 +213,7 @@
             }
         },
         shotUrl: function (w, q) {
-            return this.base + '/api/shot.jpg?w=' + (w || 800) + '&q=' + (q || 55) + '&t=' + Date.now();
+            return this.base + '/api/shot.jpg?w=' + (w || 800) + '&q=' + (q || S.q) + '&t=' + Date.now();
         },
         refreshShot: function () {
             var img = $('liveScreen');
@@ -202,7 +222,7 @@
         setMjpeg: function (on) {
             this.mjpeg = on;
             var img = $('liveScreen'), btn = $('mjpegBtn');
-            if (on && img) img.src = this.base + '/api/mjpeg?fps=2&q=50';
+            if (on && img) img.src = this.base + '/api/mjpeg?fps=' + S.fps + '&q=' + S.q;
             if (btn) btn.textContent = on ? 'Стоп видео' : 'Видео';
             if (!on) this.refreshShot();
         },
@@ -223,7 +243,7 @@
     }
 
     /* ── Единая отправка ──────────────────────────────────── */
-    var LIVE_ACTIONS = { volume: 1, brightness: 1, mute: 1, play: 1, prev: 1, next: 1, shutdown: 1, restart: 1, cancel: 1, sleep: 1, lock: 1, open: 1, close: 1, cmd: 1, ls: 1, clean: 1, ram: 1, ip: 1, ping: 1, uptime: 1, battery: 1, free: 1, apps: 1, status: 1 };
+    var LIVE_ACTIONS = { volume: 1, brightness: 1, mute: 1, play: 1, prev: 1, next: 1, shutdown: 1, restart: 1, cancel: 1, sleep: 1, lock: 1, open: 1, close: 1, cmd: 1, ls: 1, clean: 1, ram: 1, ip: 1, ping: 1, uptime: 1, battery: 1, free: 1, apps: 1, status: 1, processes: 1 };
 
     var LABELS = {
         status: 'Статус', screenshot: 'Скриншот', stream: 'Стрим в чат', stop: 'Стоп',
@@ -251,7 +271,15 @@
         action = String(action || '').toLowerCase();
         arg = arg == null ? '' : String(arg);
         if (action === 'license') { relay(action, arg); return null; }
-        if (Live.on && LIVE_ACTIONS[action]) return liveRun(action, arg, inline);
+        // Live-режим: ВСЁ выполняется прямо здесь, в чат ничего не уходит
+        if (Live.on && S.preferLive) {
+            if (action === 'screenshot') { Live.refreshShot(); toast('Кадр обновлён'); haptic('ok'); switchTab('live'); return null; }
+            if (action === 'cam') { Live.camShot(); toast('Кадр камеры'); haptic('ok'); switchTab('live'); return null; }
+            if (action === 'stream') { Live.setMjpeg(true); toast('Видео включено'); haptic('ok'); switchTab('live'); return null; }
+            if (action === 'stop') { Live.setMjpeg(false); toast('Видео выключено'); haptic('ok'); return null; }
+            if (action === 'get') { doGet(arg); return null; }
+            if (LIVE_ACTIONS[action]) return liveRun(action, arg, inline);
+        }
         relay(action, arg);
         return null;
     }
@@ -425,6 +453,7 @@
 
     /* ── Init ─────────────────────────────────────────────── */
     (function init() {
+        loadSettings();
         bindVolume(); bindBrightness();
         bindRow('openName', 'openBtn', function (v) {
             run('open', v, function (r) {
@@ -464,6 +493,47 @@
         });
 
         Live.init();
+
+        /* Настройки */
+        (function settings() {
+            var ss = $('setStatusSec'), sh = $('setShotSec'), fp = $('setFps'),
+                qq = $('setQ'), pr = $('setPrefer'), sv = $('setSave'),
+                rs = $('setReset'), info = $('setInfo');
+            if (!ss) return;
+            ss.value = S.statusSec; sh.value = S.shotSec; fp.value = S.fps; qq.value = S.q;
+            var paintPrefer = function () { pr.textContent = S.preferLive ? 'Да' : 'Нет'; };
+            paintPrefer();
+            var paintInfo = function () {
+                info.textContent = 'Сервер: ' + (Live.base || '—') +
+                    ' · Режим: ' + (Live.on ? 'LIVE' : (inTelegram ? 'relay' : 'демо'));
+            };
+            paintInfo();
+            setInterval(paintInfo, 3000);
+            pr.addEventListener('click', function () { S.preferLive = !S.preferLive; paintPrefer(); haptic(); });
+            sv.addEventListener('click', function () {
+                var a = parseFloat(ss.value), b = parseFloat(sh.value),
+                    c = parseInt(fp.value, 10), d = parseInt(qq.value, 10);
+                if (!(a >= 1 && a <= 30)) { toast('Статы: 1–30 сек', true); return; }
+                if (!(b >= 2 && b <= 60)) { toast('Скриншоты: 2–60 сек', true); return; }
+                if (!(c >= 1 && c <= 5)) { toast('FPS: 1–5', true); return; }
+                if (!(d >= 30 && d <= 85)) { toast('Качество: 30–85', true); return; }
+                S.statusSec = a; S.shotSec = b; S.fps = c; S.q = d;
+                saveSettings();
+                if (Live.on) { Live.startPoll(); if (Live.mjpeg) Live.setMjpeg(true); }
+                toast('Настройки сохранены'); haptic('ok');
+            });
+            rs.addEventListener('click', function () {
+                ['sg_live_url', 'sg_live_token', 'sg_cfg'].forEach(function (k) {
+                    try { localStorage.removeItem(k); } catch (e) {}
+                    try { tg && tg.CloudStorage && tg.CloudStorage.removeItem(k); } catch (e) {}
+                });
+                S = { statusSec: 2.5, shotSec: 3, fps: 2, q: 50, preferLive: true };
+                ss.value = S.statusSec; sh.value = S.shotSec; fp.value = S.fps; qq.value = S.q;
+                paintPrefer();
+                Live.disconnect();
+                toast('Всё сброшено'); haptic('ok');
+            });
+        })();
 
         var dot = $('statusDot'), banner = $('envBanner');
         if (inTelegram) {
