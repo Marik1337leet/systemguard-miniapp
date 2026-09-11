@@ -117,7 +117,11 @@
                 signal: ctrl.signal
             }).then(function (r) {
                 clearTimeout(timer);
-                if (r.status === 401) throw new Error('Неверный токен (401). Скопируйте токен из вкладки Telegram на ПК заново.');
+                if (r.status === 401) {
+                    var ae = new Error('Неверный токен (401). Скопируйте токен из вкладки Telegram на ПК заново.');
+                    ae.code = 401;
+                    throw ae;
+                }
                 if (!r.ok) throw new Error('HTTP ' + r.status);
                 var ct = r.headers.get('content-type') || '';
                 return ct.indexOf('json') >= 0 ? r.json() : r.blob();
@@ -126,10 +130,28 @@
                 throw normErr(e);
             });
         },
+        cleanToken: function (s) { return String(s || '').replace(/\s+/g, ''); },
+        cleanUrl: function (s) { return String(s || '').replace(/\s+/g, '').replace(/\/+$/, ''); },
+        // 401 = токен на ПК сменился, а в приложении лежит старый.
+        // Стираем сохранённый, чтобы не долбиться протухшим, и просим новый.
+        onAuthFail: function () {
+            this.on = false;
+            try { localStorage.removeItem('sg_live_token'); } catch (e) {}
+            try { tg && tg.CloudStorage && tg.CloudStorage.removeItem('sg_live_token'); } catch (e) {}
+            if ($('liveToken')) { $('liveToken').value = ''; try { $('liveToken').focus(); } catch (e) {} }
+            this.setState('Токен не подошёл — вставьте новый из вкладки Telegram на ПК');
+            this.diag('Сервер отвечает, но токен чужой (401).\n' +
+                'Старый сохранённый токен стёрт.\n' +
+                'На ПК: вкладка Telegram → скопируйте токен заново\n' +
+                '(если не помогает — там же кнопка «Новый токен»,\n' +
+                'после неё вставьте свежий сюда и нажмите Связать).');
+        },
         connect: function (silent) {
             var self = this;
-            var u = ($('liveUrl').value || '').trim().replace(/\/+$/, '');
-            var t = ($('liveToken').value || '').trim();
+            var u = self.cleanUrl(($('liveUrl').value || ''));
+            var t = self.cleanToken(($('liveToken').value || ''));
+            if ($('liveUrl')) $('liveUrl').value = u;
+            if ($('liveToken')) $('liveToken').value = t;
             if (!u || !t) { if (!silent) toast('Введите ссылку и токен', true); return; }
             if (!/^https:\/\//i.test(u)) {
                 self.diag('Ссылка должна начинаться с https:// — внутри Telegram разрешён только HTTPS.\nPublish live link даёт https://…trycloudflare.com');
@@ -153,6 +175,7 @@
                 haptic('ok');
             }).catch(function (e) {
                 self.on = false;
+                if (e && e.code === 401) { self.onAuthFail(); haptic('err'); return; }
                 self.setState('Нет связи');
                 self.diag(diagText(e, u));
                 if (!silent) { toast('Нет связи — смотрите диагностику', true); haptic('err'); }
@@ -160,8 +183,10 @@
         },
         test: function () {
             var self = this;
-            var u = ($('liveUrl').value || '').trim().replace(/\/+$/, '');
-            var t = ($('liveToken').value || '').trim();
+            var u = self.cleanUrl(($('liveUrl').value || ''));
+            var t = self.cleanToken(($('liveToken').value || ''));
+            if ($('liveUrl')) $('liveUrl').value = u;
+            if ($('liveToken')) $('liveToken').value = t;
             if (!u || !t) { toast('Введите ссылку и токен', true); return; }
             self.base = u; self.token = t;
             self.setState('Проверка…');
@@ -170,6 +195,7 @@
                 self.diag('');
                 toast('Связь есть'); haptic('ok');
             }).catch(function (e) {
+                if (e && e.code === 401) { self.onAuthFail(); haptic('err'); return; }
                 self.setState('Нет связи');
                 self.diag(diagText(e, u));
                 haptic('err');
