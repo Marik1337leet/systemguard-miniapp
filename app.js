@@ -11,7 +11,19 @@
 
     var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
     var inTelegram = !!tg;
-    try { if (tg) { tg.ready(); tg.expand(); } } catch (e) {}
+    try {
+        if (tg) {
+            tg.ready();
+            try { tg.expand(); } catch (e) {}
+            // Иначе свайп вниз закрывает приложение вместо прокрутки —
+            // главная причина «верстка не листается» на телефоне.
+            try {
+                if (tg.isVersionAtLeast && tg.isVersionAtLeast('7.7')) tg.disableVerticalSwipes();
+            } catch (e) {}
+            try { tg.setHeaderColor && tg.setHeaderColor('#F1F4F8'); } catch (e) {}
+            try { tg.setBackgroundColor && tg.setBackgroundColor('#F1F4F8'); } catch (e) {}
+        }
+    } catch (e) {}
 
     function $(id) { return document.getElementById(id); }
     function esc(s) {
@@ -159,8 +171,8 @@
                 return;
             }
             self.base = u; self.token = t;
-            self.setState('Проверка связи…'); self.diag('');
-            self.api('/api/status', { timeout: 12000 }).then(function (s) {
+            self.setState('Проверка связи… (туннель может просыпаться до 20 сек)'); self.diag('');
+            self.api('/api/status', { timeout: 20000 }).then(function (s) {
                 if (!s || s.ok === false) throw new Error((s && s.error) || 'bad reply');
                 self.on = true;
                 store('sg_live_url', u); store('sg_live_token', t);
@@ -189,8 +201,8 @@
             if ($('liveToken')) $('liveToken').value = t;
             if (!u || !t) { toast('Введите ссылку и токен', true); return; }
             self.base = u; self.token = t;
-            self.setState('Проверка…');
-            self.api('/api/status', { timeout: 12000 }).then(function (s) {
+            self.setState('Проверка… (до 20 сек)');
+            self.api('/api/status', { timeout: 20000 }).then(function (s) {
                 self.setState('ОК: ' + (s.machine || 'ПК') + ' · ' + (s.time || ''));
                 self.diag('');
                 toast('Связь есть'); haptic('ok');
@@ -300,11 +312,15 @@
             '• Ошибка: ' + m + '\n' +
             '• URL: ' + (url || '—') + '\n' +
             '• Что проверить:\n' +
-            '  1. На ПК приложение запущено, live опубликован (зелёный статус).\n' +
-            '  2. Ссылка скопирована целиком, без пробелов, начинается с https://.\n' +
-            '  3. Токен совпадает (вкладка Telegram на ПК).\n' +
-            '  4. ПК не спит/не выключен. Вне дома — только через туннель.\n' +
-            '  5. Подождите 10 сек и нажмите Проверить ещё раз.';
+            '  1. ССЫЛКА ОДНОРАЗОВАЯ: при каждом Publish / перезапуске ПК\n' +
+            '     туннель выдаёт НОВЫЙ адрес. Свежий всегда в чате:\n' +
+            '     отправьте боту /live и скопируйте оттуда.\n' +
+            '  2. На ПК приложение запущено, live опубликован (зелёный статус).\n' +
+            '  3. Ссылка целиком, без пробелов, начинается с https://.\n' +
+            '  4. Токен совпадает (вкладка Telegram на ПК).\n' +
+            '  5. ПК не спит/не выключен. Вне дома — только через туннель.\n' +
+            '  6. Подождите 20 сек и нажмите Проверить ещё раз\n' +
+            '     (туннель холодным стартует медленно).';
     }
 
     function setText(id, v) { var e = $(id); if (e) e.textContent = v; }

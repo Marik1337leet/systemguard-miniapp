@@ -16,14 +16,21 @@
     color-scheme: light;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; }
+/* Скролл внутри Telegram: никакого height:100% (он запирает страницу),
+   вертикальный пан разрешён, свайп-закрытие гасится из JS. */
+html { min-height: 100%; }
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
     background: var(--bg);
     color: var(--ink);
-    padding: 12px 12px calc(72px + env(safe-area-inset-bottom));
+    padding: 12px 12px calc(84px + env(safe-area-inset-bottom));
     font-size: 14px;
     line-height: 1.45;
+    min-height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: auto;
+    touch-action: pan-x pan-y;
 }
 #app { max-width: 640px; margin: 0 auto; }
 .hidden { display: none !important; }

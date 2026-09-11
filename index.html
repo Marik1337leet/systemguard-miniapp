@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>SystemGuard Remote</title>
-    <link rel="stylesheet" href="style.css?v=5">
+    <link rel="stylesheet" href="style.css?v=6">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -26,7 +26,7 @@
     <section id="tab-status" class="tab-page active">
         <div class="card" id="liveSetup">
             <div class="card-title">Подключение к ПК</div>
-            <p class="hint">На ПК: SystemGuard → Telegram → <b>Publish live link</b>. Вставьте ссылку и токен — один раз, сохранится. Вне дома работает через этот же туннель (ПК должен быть включён, приложение запущено).</p>
+            <p class="hint">На ПК: SystemGuard → Telegram → <b>Publish live link</b>. Вставьте ссылку и токен. Внимание: ссылка <b>меняется при каждом Publish и перезапуске</b> — свежую всегда можно взять в чате командой <b>/live</b>. Вне дома работает через этот же туннель (ПК включён, приложение запущено).</p>
             <input type="text" id="liveUrl" class="input mono" placeholder="https://…trycloudflare.com" autocomplete="off" autocapitalize="off" spellcheck="false">
             <div class="row">
                 <input type="text" id="liveToken" class="input mono" placeholder="токен" autocomplete="off" autocapitalize="off" spellcheck="false">
@@ -305,6 +305,6 @@
 
     <div class="toast-wrap" id="toasts"></div>
 </div>
-<script src="app.js?v=5"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>
