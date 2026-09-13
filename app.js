@@ -593,6 +593,12 @@
                 copyText(cp.dataset.copy, cp.dataset.copy);
                 return;
             }
+            var kb = ev.target.closest ? ev.target.closest('[data-key]') : null;
+            if (kb) {
+                ev.preventDefault();
+                run('key', kb.dataset.key, null);
+                return;
+            }
             var pol = ev.target.closest ? ev.target.closest('[data-policy]') : null;
             if (pol) {
                 ev.preventDefault();
@@ -685,6 +691,96 @@
         });
         var csb = $('camStopBtn');
         if (csb) csb.addEventListener('click', function () { Live.stopCamVideo(); toast('Видео камеры выключено'); });
+
+        /* ── Удалённое управление: тачпад + тап по кадру + клавиши ── */
+        (function remote() {
+            var pad = $('touchpad');
+            if (pad) {
+                var sx = 0, sy = 0, st = 0, accX = 0, accY = 0, lastSend = 0, moved = false, pid = null;
+                var SENS = 2.2, TAP_MS = 250, TAP_PX = 12;
+                function pos(t) { return { x: t.clientX, y: t.clientY }; }
+                function flush(force) {
+                    var now = Date.now();
+                    if ((!force && now - lastSend < 60) || (accX === 0 && accY === 0)) return;
+                    lastSend = now;
+                    var dx = Math.round(accX), dy = Math.round(accY);
+                    accX -= dx; accY -= dy;
+                    if (dx || dy) run('mouse_move', dx + ',' + dy, null);
+                }
+                function start(x, y, id) {
+                    if (!needLive()) return;
+                    sx = x; sy = y; st = Date.now(); moved = false;
+                    accX = 0; accY = 0; pid = (id == null ? 'm' : id);
+                }
+                function move(x, y, id) {
+                    if (pid == null || (id != null && id !== pid)) return;
+                    var dx = (x - sx) * SENS, dy = (y - sy) * SENS;
+                    sx = x; sy = y;
+                    if (Math.abs(x) + Math.abs(y) > 0) moved = moved || Math.abs(dx) + Math.abs(dy) > TAP_PX;
+                    accX += dx; accY += dy;
+                    flush(false);
+                }
+                function end(id) {
+                    if (pid == null || (id != null && id !== pid)) return;
+                    pid = null;
+                    flush(true);
+                    // Тап (быстро и почти без сдвига) = левый клик.
+                    if (!moved && Date.now() - st < TAP_MS) run('mouse_click', 'left', null);
+                    moved = false;
+                }
+                pad.addEventListener('touchstart', function (e) {
+                    e.preventDefault();
+                    var t = e.changedTouches[0], p = pos(t);
+                    start(p.x, p.y, t.identifier);
+                }, { passive: false });
+                pad.addEventListener('touchmove', function (e) {
+                    e.preventDefault();
+                    var t = e.changedTouches[0], p = pos(t);
+                    move(p.x, p.y, t.identifier);
+                }, { passive: false });
+                pad.addEventListener('touchend', function (e) {
+                    e.preventDefault();
+                    end(e.changedTouches[0].identifier);
+                });
+                pad.addEventListener('touchcancel', function () { pid = null; moved = false; });
+                // Мышь — для проверки в обычном браузере.
+                pad.addEventListener('mousedown', function (e) { start(e.clientX, e.clientY, null); });
+                window.addEventListener('mousemove', function (e) { move(e.clientX, e.clientY, 'm'); });
+                window.addEventListener('mouseup', function () { end('m'); });
+            }
+            // Тап по кадру экрана = клик в точку (доли 0..1, сервер сам масштабирует).
+            var shot = $('liveScreen');
+            if (shot) shot.addEventListener('click', function (e) {
+                if (!Live.on) return;
+                try {
+                    var r = shot.getBoundingClientRect();
+                    if (r.width < 2 || r.height < 2) return;
+                    var fx = ((e.clientX - r.left) / r.width).toFixed(3);
+                    var fy = ((e.clientY - r.top) / r.height).toFixed(3);
+                    run('mouse_click_at', fx + ',' + fy, null);
+                } catch (err) {}
+            });
+            function bindKeyBtn(id, action, arg) {
+                var b = $(id);
+                if (b) b.addEventListener('click', function () { run(action, arg, null); });
+            }
+            bindKeyBtn('rclickBtn', 'mouse_click', 'right');
+            bindKeyBtn('dblBtn', 'mouse_click', 'double');
+            bindKeyBtn('wheelUpBtn', 'scroll', '3');
+            bindKeyBtn('wheelDownBtn', 'scroll', '-3');
+            var tb = $('typeBtn');
+            if (tb) tb.addEventListener('click', function () {
+                var i = $('typeInput');
+                var v = i ? i.value : '';
+                if (!v) { toast('Введите текст', true); return; }
+                run('type', v, null);
+                if (i) i.value = '';
+            });
+            var ti = $('typeInput');
+            if (ti) ti.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') { e.preventDefault(); if (tb) tb.click(); }
+            });
+        })();
 
         var wb = $('wolBtn');
         if (wb) wb.addEventListener('click', function () {

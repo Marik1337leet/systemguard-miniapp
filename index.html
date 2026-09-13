@@ -146,6 +146,32 @@
             </div>
         </div>
         <div class="card">
+            <div class="card-title">Мышь и клавиатура</div>
+            <div class="touchpad" id="touchpad"><span class="touchpad-hint">Ведите — курсор · тап — левый клик</span></div>
+            <div class="row">
+                <button class="btn sm" id="rclickBtn">ПКМ</button>
+                <button class="btn sm" id="dblBtn">2×клик</button>
+                <button class="btn sm" id="wheelUpBtn">Колесо ▲</button>
+                <button class="btn sm" id="wheelDownBtn">Колесо ▼</button>
+            </div>
+            <div class="row">
+                <input type="text" id="typeInput" class="input" placeholder="текст для печати…" autocomplete="off">
+                <button class="btn primary sm" id="typeBtn">Печать</button>
+            </div>
+            <div class="keys-grid">
+                <button class="btn sm" data-key="esc">Esc</button>
+                <button class="btn sm" data-key="tab">Tab</button>
+                <button class="btn sm" data-key="enter">Enter</button>
+                <button class="btn sm" data-key="backspace">⌫</button>
+                <button class="btn sm" data-key="alt+tab">Alt+Tab</button>
+                <button class="btn sm" data-key="alt+f4">Alt+F4</button>
+                <button class="btn sm" data-key="ctrl+c">Ctrl+C</button>
+                <button class="btn sm" data-key="ctrl+v">Ctrl+V</button>
+                <button class="btn sm" data-key="win+d">Win+D</button>
+            </div>
+            <p class="hint">Тап по кадру на вкладке Экран — клик в точку. Всё идёт по токену через туннель, ничего ставить не надо.</p>
+        </div>
+        <div class="card">
             <div class="card-title">Приложения (как в десктопе)</div>
             <div class="row">
                 <input type="text" id="openName" class="input" placeholder="chrome, steam, notepad…" autocomplete="off">
@@ -305,6 +331,6 @@
 
     <div class="toast-wrap" id="toasts"></div>
 </div>
-<script src="app.js?v=8"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>
