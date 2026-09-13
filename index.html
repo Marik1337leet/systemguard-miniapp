@@ -26,8 +26,8 @@
     <section id="tab-status" class="tab-page active">
         <div class="card" id="liveSetup">
             <div class="card-title">Подключение к ПК</div>
-            <p class="hint">На ПК: SystemGuard → Telegram → <b>Publish live link</b>. Вставьте ссылку и токен. Внимание: ссылка <b>меняется при каждом Publish и перезапуске</b> — свежую всегда можно взять в чате командой <b>/live</b>. Вне дома работает через этот же туннель (ПК включён, приложение запущено).</p>
-            <input type="text" id="liveUrl" class="input mono" placeholder="https://…trycloudflare.com" autocomplete="off" autocapitalize="off" spellcheck="false">
+            <p class="hint">На ПК: SystemGuard → Telegram → <b>Publish live link</b>. Вставьте ссылку и токен. Внимание: ссылка <b>меняется при каждом Publish и перезапуске</b> — свежую всегда можно взять в чате командой <b>/live</b>. Вне дома работает через этот же туннель (ПК включён, приложение запущено). Если с телефона нет связи, а с ПК есть — откройте ссылку в обычном Chrome на телефоне и пройдите проверку Cloudflare.</p>
+            <input type="text" id="liveUrl" class="input mono" placeholder="https://…" autocomplete="off" autocapitalize="off" spellcheck="false">
             <div class="row">
                 <input type="text" id="liveToken" class="input mono" placeholder="токен" autocomplete="off" autocapitalize="off" spellcheck="false">
                 <button class="btn primary sm" id="liveConnect">Связать</button>
@@ -305,6 +305,6 @@
 
     <div class="toast-wrap" id="toasts"></div>
 </div>
-<script src="app.js?v=6"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>

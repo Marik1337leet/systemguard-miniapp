@@ -1,7 +1,9 @@
-/* SystemGuard Remote WebApp v4 — полное зеркало десктопа.
+/* SystemGuard Remote WebApp v5 — полное зеркало десктопа.
  * ПРИНЦИП: всё выполняется ВНУТРИ WebApp через Live HTTP API.
  * tg.sendData НЕ вызывается никогда — поэтому приложение НЕ закрывается
  * после каждого действия (sendData по дизайну Telegram закрывает WebApp).
+ * Токен — только в ?token=, POST — как text/plain: никаких CORS-preflight,
+ * иначе мобильные WebView режут связь («с ПК работает, с телефона нет»).
  * License/Pro: команда копируется в буфер — вставьте в чат с ботом.
  * Кадры и MJPEG идут с ?token= в URL (img не умеет в headers).
  * Выводы консоли — inline в <pre> через textContent, кириллица чистая
@@ -107,7 +109,11 @@
             if (t && $('liveToken')) $('liveToken').value = t;
             if (u && t) this.connect(true);
         },
-        // Токен дублируем: header X-Token (fetch) + ?token= (img/download).
+        // Токен — ТОЛЬКО в ?token= (query). Кастомный header X-Token НЕ шлём,
+        // POST — как text/plain: тогда запрос "простой" (simple request),
+        // браузер НЕ делает CORS-preflight (OPTIONS), который мобильные WebView
+        // и часть прокси режут молча — главная причина «с ПК работает, с телефона нет».
+        // Сервер принимает токен из query и парсит JSON-тело при любом Content-Type.
         q: function (path) {
             var sep = path.indexOf('?') >= 0 ? '&' : '?';
             return this.base + path + sep + 'token=' + encodeURIComponent(this.token);
@@ -115,35 +121,55 @@
         api: function (path, opts) {
             var self = this;
             opts = opts || {};
-            var headers = { 'X-Token': self.token };
-            if (opts.body) headers['Content-Type'] = 'application/json';
             var ctrl = new AbortController();
             var timer = setTimeout(function () { ctrl.abort(); }, opts.timeout || 15000);
-            // token и в query — на случай строгих прокси, режущих headers
             var sep = path.indexOf('?') >= 0 ? '&' : '?';
             var url = self.base + path + sep + 'token=' + encodeURIComponent(self.token);
-            return fetch(url, {
-                method: opts.method || 'GET',
-                headers: headers,
-                body: opts.body ? JSON.stringify(opts.body) : undefined,
-                signal: ctrl.signal
-            }).then(function (r) {
+            var init = { method: opts.method || 'GET', signal: ctrl.signal };
+            if (opts.body) {
+                init.headers = { 'Content-Type': 'text/plain;charset=UTF-8' };
+                init.body = JSON.stringify(opts.body);
+            }
+            return fetch(url, init).then(function (r) {
                 clearTimeout(timer);
                 if (r.status === 401) {
                     var ae = new Error('Неверный токен (401). Скопируйте токен из вкладки Telegram на ПК заново.');
                     ae.code = 401;
                     throw ae;
                 }
+                if (r.status === 403) {
+                    var fe = new Error('Cloudflare не пропустил (403). Откройте ссылку в Chrome на телефоне и пройдите проверку, затем вернитесь.');
+                    fe.code = 403;
+                    throw fe;
+                }
                 if (!r.ok) throw new Error('HTTP ' + r.status);
                 var ct = r.headers.get('content-type') || '';
-                return ct.indexOf('json') >= 0 ? r.json() : r.blob();
+                if (ct.indexOf('json') >= 0) return r.json();
+                // Ждали JSON, а прилетел HTML — это страница проверки Cloudflare
+                // (challenge): обычный браузер её проходит, WebView в Telegram — нет.
+                return r.text().then(function (t) {
+                    if (/<html/i.test(t)) {
+                        var ce = new Error('Cloudflare показал страницу проверки. Откройте ссылку в Chrome на телефоне, пройдите проверку и нажмите Проверить снова.');
+                        ce.code = 'cf-challenge';
+                        throw ce;
+                    }
+                    throw new Error('Неожиданный ответ сервера');
+                });
             }).catch(function (e) {
                 clearTimeout(timer);
                 throw normErr(e);
             });
         },
         cleanToken: function (s) { return String(s || '').replace(/\s+/g, ''); },
-        cleanUrl: function (s) { return String(s || '').replace(/\s+/g, '').replace(/\/+$/, ''); },
+        // Нормализация под ввод с телефона вручную: пробелы, протокол, /api-хвост.
+        cleanUrl: function (s) {
+            s = String(s || '').trim().replace(/\s+/g, '').replace(/\/+$/, '');
+            if (!s) return s;
+            if (/^http:\/\//i.test(s)) s = 'https://' + s.slice(7); // в Telegram только HTTPS
+            if (!/^https:\/\//i.test(s)) s = 'https://' + s;
+            s = s.replace(/\/api(\/.*)?$/i, '').replace(/\/+$/, '');
+            return s;
+        },
         // 401 = токен на ПК сменился, а в приложении лежит старый.
         // Стираем сохранённый, чтобы не долбиться протухшим, и просим новый.
         onAuthFail: function () {
@@ -166,7 +192,7 @@
             if ($('liveToken')) $('liveToken').value = t;
             if (!u || !t) { if (!silent) toast('Введите ссылку и токен', true); return; }
             if (!/^https:\/\//i.test(u)) {
-                self.diag('Ссылка должна начинаться с https:// — внутри Telegram разрешён только HTTPS.\nPublish live link даёт https://…trycloudflare.com');
+                self.diag('Ссылка должна начинаться с https:// — внутри Telegram разрешён только HTTPS.\nPublish live link выдаёт готовую https-ссылку — вставьте её целиком.');
                 if (!silent) toast('Нужна https-ссылка', true);
                 return;
             }
@@ -319,7 +345,10 @@
             '  3. Ссылка целиком, без пробелов, начинается с https://.\n' +
             '  4. Токен совпадает (вкладка Telegram на ПК).\n' +
             '  5. ПК не спит/не выключен. Вне дома — только через туннель.\n' +
-            '  6. Подождите 20 сек и нажмите Проверить ещё раз\n' +
+            '  6. ПРОВЕРКА CLOUDFLARE: вставьте ссылку в обычный Chrome\n' +
+            '     на телефоне — если там страница проверки, пройдите её,\n' +
+            '     затем вернитесь и нажмите Проверить.\n' +
+            '  7. Подождите 20 сек и нажмите Проверить ещё раз\n' +
             '     (туннель холодным стартует медленно).';
     }
 
@@ -481,10 +510,9 @@
         if (!path) { toast('Введите путь', true); return; }
         if (!needLive()) return;
         toast('Скачивание…');
-        // fetch с токеном → blob → сохранение (встроено, без window.open без токена)
-        var sep = '?';
+        // Токен только в query (без кастомных headers — иначе preflight).
         var url = Live.base + '/api/file?path=' + encodeURIComponent(path) + '&token=' + encodeURIComponent(Live.token);
-        fetch(url, { headers: { 'X-Token': Live.token } }).then(function (r) {
+        fetch(url).then(function (r) {
             if (r.status === 401) throw new Error('Неверный токен (401)');
             if (!r.ok) throw new Error('HTTP ' + r.status);
             var ct = r.headers.get('content-type') || '';
