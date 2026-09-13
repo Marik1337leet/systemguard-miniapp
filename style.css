@@ -127,6 +127,10 @@ input[type="range"]::-moz-range-thumb {
     cursor: pointer;
 }
 .touchpad-hint { font-size: 12px; color: var(--muted); pointer-events: none; }
+/* Свич мыши: нативный чекбокс в фирменном акценте */
+.switch-row { display: flex; align-items: center; gap: 10px; padding: 10px 2px; font-size: 14px; font-weight: 600; cursor: pointer; user-select: none; }
+.switch-row input { width: 22px; height: 22px; accent-color: var(--accent); margin: 0; flex-shrink: 0; }
+.switch-row small { font-weight: 400; color: var(--muted); font-size: 12px; }
 .keys-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 8px; }
 .chip {
     padding: 7px 12px; border-radius: 999px; font-size: 12px; font-family: Consolas, monospace;

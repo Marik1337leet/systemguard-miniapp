@@ -26,7 +26,7 @@
     <section id="tab-status" class="tab-page active">
         <div class="card" id="liveSetup">
             <div class="card-title">Подключение к ПК</div>
-            <p class="hint">На ПК: SystemGuard → Telegram → <b>Publish live link</b>. Вставьте ссылку и токен. Внимание: ссылка <b>меняется при каждом Publish и перезапуске</b> — свежую всегда можно взять в чате командой <b>/live</b>. Вне дома работает через этот же туннель (ПК включён, приложение запущено). Если с телефона нет связи, а с ПК есть — откройте ссылку в обычном Chrome на телефоне и пройдите проверку Cloudflare.</p>
+            <p class="hint">На ПК: SystemGuard → Telegram → <b>Publish live link</b>. Вставьте ссылку и токен. Внимание: ссылка <b>меняется при каждом Publish и перезапуске</b> — свежая сама прилетает вам в личку бота (или запросите <b>/live</b>). Вне дома: видео и экран — через этот туннель (ПК включён, приложение запущено); <b>команды работают и без туннеля</b> — при мёртвом Live приложение само скопирует команду (<code>/status</code>, <code>/cmd</code>…), вставьте её в чат с ботом, ответ придёт туда же. Скриншот без Live — команда <code>/screenshot</code> в чате.</p>
             <input type="text" id="liveUrl" class="input mono" placeholder="https://…" autocomplete="off" autocapitalize="off" spellcheck="false">
             <div class="row">
                 <input type="text" id="liveToken" class="input mono" placeholder="токен" autocomplete="off" autocapitalize="off" spellcheck="false">
@@ -147,6 +147,8 @@
         </div>
         <div class="card">
             <div class="card-title">Мышь и клавиатура</div>
+            <label class="switch-row"><input type="checkbox" id="mouseSwitch" checked> Мышь <small>тачпад, клики, колесо</small></label>
+            <img id="padScreen" class="shot" alt="экран" src="">
             <div class="touchpad" id="touchpad"><span class="touchpad-hint">Ведите — курсор · тап — левый клик</span></div>
             <div class="row">
                 <button class="btn sm" id="rclickBtn">ПКМ</button>
@@ -229,6 +231,7 @@
             <div class="card-title">Защита и обслуживание</div>
             <div class="grid-2">
                 <button class="btn sm" data-run="defender_status">Defender</button>
+                <button class="btn sm" data-run="remote">Удал. доступ</button>
                 <button class="btn sm" data-run="cleanup_info">Мусор</button>
                 <button class="btn sm" data-run="clean" data-confirm="Удалить temp-файлы без корзины?">Очистка temp</button>
                 <button class="btn sm" data-run="ram">Оптимизация RAM</button>

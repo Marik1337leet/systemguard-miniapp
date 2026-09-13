@@ -70,7 +70,7 @@
     }
 
     /* ── Настройки ── */
-    var S = { statusSec: 2.5, shotSec: 3, fps: 15, q: 55, screenFps: 15, camFps: 15 };
+    var S = { statusSec: 2.5, shotSec: 3, fps: 15, q: 55, screenFps: 15, camFps: 15, mouseOn: true };
     function loadSettings() {
         try {
             var raw = localStorage.getItem('sg_cfg4');
@@ -82,6 +82,7 @@
                 if (c.q >= 30 && c.q <= 85) S.q = c.q;
                 if (c.screenFps >= 1 && c.screenFps <= 30) S.screenFps = c.screenFps;
                 if (c.camFps >= 1 && c.camFps <= 30) S.camFps = c.camFps;
+                if (typeof c.mouseOn === 'boolean') S.mouseOn = c.mouseOn;
             }
         } catch (e) {}
     }
@@ -243,6 +244,7 @@
             this.on = false; this.base = '';
             clearInterval(this.pollTimer); clearInterval(this.shotTimer);
             this.pollTimer = this.shotTimer = null;
+            try { this.stopStreams('all'); } catch (e) {}
             this.stopScreenVideo(); this.stopCamVideo();
             $('livePanels').classList.add('hidden');
             $('liveDisconnect').classList.add('hidden');
@@ -286,6 +288,14 @@
                 setText('volVal', s.vol + '%');
                 var vr = $('volRange'); if (vr && document.activeElement !== vr) vr.value = s.vol;
             }
+            // Свич мыши: сервер — источник правды (не трогаем 3 сек после ручного переключения).
+            if (s.mouseOn !== undefined && Date.now() - mouseToggleAt > 3000) {
+                if (!!s.mouseOn !== !!S.mouseOn) {
+                    S.mouseOn = !!s.mouseOn;
+                    try { saveSettings(); } catch (e) {}
+                    paintMouseSwitch();
+                }
+            }
         },
         refreshShot: function () {
             var img = $('liveScreen');
@@ -297,13 +307,28 @@
         startScreenVideo: function (fps) {
             var img = $('liveScreen');
             if (!img || !this.on) return;
+            var url = this.q('/api/mjpeg?fps=' + (fps || S.screenFps) + '&q=' + S.q + '&w=960');
             img.dataset.video = '1';
-            img.src = this.q('/api/mjpeg?fps=' + (fps || S.screenFps) + '&q=' + S.q + '&w=960');
+            img.src = url;
+            // Зеркало в карточке мыши — тот же стрим, видно куда тянешь.
+            var pad = $('padScreen');
+            if (pad) { pad.dataset.video = '1'; pad.src = url; }
             var btn = $('mjpegBtn'); if (btn) btn.textContent = 'Видео ●';
+        },
+        stopStreams: function (kind) {
+            // Мгновенный стоп на сервере: рвём MJPEG-цикл сразу,
+            // клиент не доедает «следующие кадры».
+            try {
+                fetch(this.q('/api/stop?kind=' + (kind || 'all')), { method: 'GET' })
+                    .catch(function () {});
+            } catch (e) {}
         },
         stopScreenVideo: function () {
             var img = $('liveScreen');
             if (img) { delete img.dataset.video; img.src = ''; }
+            var pad = $('padScreen');
+            if (pad) { delete pad.dataset.video; pad.src = ''; }
+            try { this.stopStreams('mjpeg'); } catch (e) {}
             var btn = $('mjpegBtn'); if (btn) btn.textContent = 'Видео';
         },
         camShot: function () {
@@ -323,7 +348,8 @@
         },
         stopCamVideo: function () {
             var img = $('liveCam');
-            if (img) { delete img.dataset.video; }
+            if (img) { delete img.dataset.video; img.src = ''; img.classList.add('hidden'); }
+            try { this.stopStreams('cam'); } catch (e) {}
         }
     };
 
@@ -344,7 +370,9 @@
             '  2. На ПК приложение запущено, live опубликован (зелёный статус).\n' +
             '  3. Ссылка целиком, без пробелов, начинается с https://.\n' +
             '  4. Токен совпадает (вкладка Telegram на ПК).\n' +
-            '  5. ПК не спит/не выключен. Вне дома — только через туннель.\n' +
+            '  5. ПК не спит/не выключен. Вне дома команды также идут\n' +
+            '     через чат с ботом (/status, /cmd, /screenshot…):\n' +
+            '     приложение само копирует команду при мёртвом туннеле.'
             '  6. ПРОВЕРКА CLOUDFLARE: вставьте ссылку в обычный Chrome\n' +
             '     на телефоне — если там страница проверки, пройдите её,\n' +
             '     затем вернитесь и нажмите Проверить.\n' +
@@ -377,7 +405,8 @@
         ip: 'netOut', ping: 'netOut', netstat: 'netOut', connections: 'netOut',
         wifi: 'netOut', dnsflush: 'netOut', ports: 'netOut',
         defender_status: 'secOut', cleanup_info: 'secOut', clean: 'secOut', ram: 'secOut',
-        eventlog: 'secOut', services: 'secOut', game_boost: 'secOut', sched_list: 'secOut'
+        eventlog: 'secOut', services: 'secOut', game_boost: 'secOut', sched_list: 'secOut',
+        remote: 'secOut'
     };
     var LABELS = {
         shutdown: 'Выключение через 60с', restart: 'Рестарт через 60с', sleep: 'Сон',
@@ -385,9 +414,48 @@
         cancel: 'Таймер отменён', mute: 'Мут', play: 'Play/Pause', next: 'Трек ▶',
         prev: 'Трек ◀', volume: 'Громкость', brightness: 'Яркость',
         open: 'Открытие', close: 'Завершение', cmd: 'Команда', ls: 'Файлы',
-        clean: 'Очистка', ram: 'RAM', perf: 'Perf', sysinfo: 'Система'
+        clean: 'Очистка', ram: 'RAM', perf: 'Perf', sysinfo: 'Система',
+        remote: 'Удалённый доступ'
     };
     function label(a) { return LABELS[a] || a; }
+
+    /* ── Fallback в чат, когда Live-туннель мёртв (вне дома) ──
+     * Карта: действие WebApp → команда чат-бота (ПК-бот работает из любой
+     * сети через polling, туннель ему не нужен). null = только по Live
+     * (мышь/клавиатура, сканы, удаление программ — им нечего делать в чате).
+     * sendData НЕ используем: он по дизайну Telegram закрывает WebApp.
+     * Вместо этого копируем команду — вставка в чат занимает 2 тапа,
+     * приложение остаётся открытым, ответ приходит в чат. */
+    var CHAT_FALLBACK = {
+        shutdown: 1, restart: 1, sleep: 1, hibernate: 1, lock: 1, wake: 1,
+        cancel: 1, battery: 1, free: 1, uptime: 1, perf: 1, sysinfo: 1,
+        ip: 1, ping: 1, netstat: 1, mute: 1, play: 1, next: 1,
+        prev: 1, volume: 1, brightness: 1, open: 1, close: 1, cmd: 1,
+        ls: 1, processes: 1, apps: 1, startup: 1, clean: 1, ram: 1,
+        eventlog: 1, unlock: 1, wifi: 1, remote: 1,
+        power_plans: 'plans', defender_status: 'defender',
+        license_status: 'license', connections: 'netstat'
+    };
+    function chatFallback(action, arg) {
+        if (!Object.prototype.hasOwnProperty.call(CHAT_FALLBACK, action)) return null;
+        var cmd = CHAT_FALLBACK[action] === 1 ? action : CHAT_FALLBACK[action];
+        cmd = '/' + cmd + (arg ? ' ' + arg : '');
+        return cmd;
+    }
+
+    /* ── Свич мыши: локальный гард + серверный флаг ── */
+    var mouseToggleAt = 0;
+    function paintMouseSwitch() {
+        var msw = $('mouseSwitch');
+        if (msw) msw.checked = !!S.mouseOn;
+        var pad = $('touchpad');
+        if (pad) pad.style.opacity = S.mouseOn ? '1' : '0.45';
+    }
+    // Обёртка для точечных действий мыши: выключено — один тост, запроса нет.
+    function mrun(action, arg, outId) {
+        if (!S.mouseOn) { toast('Управление мышью выключено (свич выше)', true); return null; }
+        return run(action, arg, outId);
+    }
 
     function run(action, arg, outId) {
         action = String(action || '').toLowerCase();
@@ -417,7 +485,14 @@
                 return r;
             })
             .catch(function (e) {
-                toast('Нет связи: ' + (e.message || e), true);
+                // Live мёртв (типично вне дома): команда уходит в чат —
+                // ПК-бот читает чат из любой сети, ответ приходит туда же.
+                var fb = chatFallback(action, arg);
+                if (fb && inTelegram) {
+                    copyText(fb, 'Live недоступен — команда скопирована');
+                } else {
+                    toast('Нет связи: ' + (e.message || e), true);
+                }
                 haptic('err');
                 Live.diag(diagText(e, Live.base));
             });
@@ -605,7 +680,10 @@
                 if (!needLive()) return;
                 Live.api('/api/policy?kind=' + pol.dataset.policy).then(function (r) {
                     showOut('policyOut', r.text || '');
-                }).catch(function (e) { toast('Нет связи', true); });
+                }).catch(function (e) {
+                    if (inTelegram) copyText('/' + pol.dataset.policy, 'Live недоступен — команда скопирована');
+                    else toast('Нет связи', true);
+                });
                 return;
             }
             var chipLs = ev.target.closest ? ev.target.closest('[data-ls]') : null;
@@ -676,7 +754,9 @@
         });
         var ms = $('mjpegStop');
         if (ms) ms.addEventListener('click', function () {
-            Live.stopScreenVideo(); Live.refreshShot(); toast('Видео выключено');
+            // Стоп = сразу чёрный экран: сервер рвёт цикл, кадр не подгружаем.
+            // Статичный кадр — по кнопке «Кадр».
+            Live.stopScreenVideo(); toast('Видео выключено');
         });
         var cam = $('camBtn');
         if (cam) cam.addEventListener('click', function () {
@@ -709,10 +789,12 @@
                 }
                 function start(x, y, id) {
                     if (!needLive()) return;
+                    if (!S.mouseOn) return; // свич выкл — жест молча игнорируем
                     sx = x; sy = y; st = Date.now(); moved = false;
                     accX = 0; accY = 0; pid = (id == null ? 'm' : id);
                 }
                 function move(x, y, id) {
+                    if (!S.mouseOn) return;
                     if (pid == null || (id != null && id !== pid)) return;
                     var dx = (x - sx) * SENS, dy = (y - sy) * SENS;
                     sx = x; sy = y;
@@ -725,7 +807,7 @@
                     pid = null;
                     flush(true);
                     // Тап (быстро и почти без сдвига) = левый клик.
-                    if (!moved && Date.now() - st < TAP_MS) run('mouse_click', 'left', null);
+                    if (!moved && Date.now() - st < TAP_MS) mrun('mouse_click', 'left', null);
                     moved = false;
                 }
                 pad.addEventListener('touchstart', function (e) {
@@ -749,25 +831,34 @@
                 window.addEventListener('mouseup', function () { end('m'); });
             }
             // Тап по кадру экрана = клик в точку (доли 0..1, сервер сам масштабирует).
-            var shot = $('liveScreen');
-            if (shot) shot.addEventListener('click', function (e) {
-                if (!Live.on) return;
-                try {
-                    var r = shot.getBoundingClientRect();
-                    if (r.width < 2 || r.height < 2) return;
-                    var fx = ((e.clientX - r.left) / r.width).toFixed(3);
-                    var fy = ((e.clientY - r.top) / r.height).toFixed(3);
-                    run('mouse_click_at', fx + ',' + fy, null);
-                } catch (err) {}
-            });
-            function bindKeyBtn(id, action, arg) {
-                var b = $(id);
-                if (b) b.addEventListener('click', function () { run(action, arg, null); });
+            // Вешаем и на основное видео, и на зеркало в карточке мыши.
+            function bindShotClick(id) {
+                var shot = $(id);
+                if (!shot) return;
+                shot.addEventListener('click', function (e) {
+                    if (!Live.on) return;
+                    try {
+                        var r = shot.getBoundingClientRect();
+                        if (r.width < 2 || r.height < 2) return;
+                        var fx = ((e.clientX - r.left) / r.width).toFixed(3);
+                        var fy = ((e.clientY - r.top) / r.height).toFixed(3);
+                        mrun('mouse_click_at', fx + ',' + fy, null);
+                    } catch (err) {}
+                });
             }
-            bindKeyBtn('rclickBtn', 'mouse_click', 'right');
-            bindKeyBtn('dblBtn', 'mouse_click', 'double');
-            bindKeyBtn('wheelUpBtn', 'scroll', '3');
-            bindKeyBtn('wheelDownBtn', 'scroll', '-3');
+            bindShotClick('liveScreen');
+            bindShotClick('padScreen');
+            function bindKeyBtn(id, action, arg, isMouse) {
+                var b = $(id);
+                if (b) b.addEventListener('click', function () {
+                    if (isMouse) mrun(action, arg, null);
+                    else run(action, arg, null);
+                });
+            }
+            bindKeyBtn('rclickBtn', 'mouse_click', 'right', true);
+            bindKeyBtn('dblBtn', 'mouse_click', 'double', true);
+            bindKeyBtn('wheelUpBtn', 'scroll', '3', true);
+            bindKeyBtn('wheelDownBtn', 'scroll', '-3', true);
             var tb = $('typeBtn');
             if (tb) tb.addEventListener('click', function () {
                 var i = $('typeInput');
@@ -811,6 +902,22 @@
         if (portsBtn) portsBtn.addEventListener('click', function () {
             run('ports', ($('portsInput').value || '').trim(), 'netOut');
         });
+
+        /* ── Свич мыши ── */
+        (function mouseSwitch() {
+            paintMouseSwitch();
+            var msw = $('mouseSwitch');
+            if (!msw) return;
+            msw.addEventListener('change', function () {
+                S.mouseOn = !!msw.checked;
+                try { saveSettings(); } catch (e) {}
+                paintMouseSwitch();
+                mouseToggleAt = Date.now();
+                if (Live.on) run('mouse_enable', S.mouseOn ? 'on' : 'off', null);
+                else toast(S.mouseOn ? 'Мышь включена' : 'Мышь выключена');
+                haptic('ok');
+            });
+        })();
 
         Live.init();
 
