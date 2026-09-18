@@ -1,40 +1,47 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SystemGuard Remote</title>
-    <link rel="stylesheet" href="style.css?v=6">
+    <title>SystemGuard Console</title>
+    <link rel="stylesheet" href="style.css?v=10">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
 <div id="app">
     <header class="topbar">
         <div class="brand">
-            <span class="brand-mark">SG</span>
+            <span class="brand-mark">S<i>G</i></span>
             <div>
-                <div class="brand-name">SystemGuard</div>
-                <div class="brand-sub">Пульт управления ПК</div>
+                <div class="brand-name">SYSTEMGUARD</div>
+                <div class="brand-sub">REMOTE CONSOLE · V6</div>
             </div>
         </div>
-        <div class="conn" id="connBadge"><span class="dot" id="statusDot"></span><span id="modeLabel">Офлайн</span></div>
+        <div class="conn" id="connBadge"><span class="dot off" id="statusDot"></span><span id="modeLabel">OFFLINE</span></div>
     </header>
 
-    <div class="notice hidden" id="envBanner">Откройте через кнопку <b>Web App</b> в боте. Затем во вкладке <b>Статус</b> вставьте ссылку и токен из приложения на ПК (Telegram → Publish live link). Всё работает внутри приложения.</div>
+    <div class="notice hidden" id="envBanner">Откройте через кнопку <b>Web App</b> в боте. Затем во вкладке <b>Статус</b> вставьте ссылку и токен из приложения на ПК (Telegram → Publish live link).</div>
 
-    <!-- ═══ СТАТУС (Dashboard + Performance, зеркало десктопа) ═══ -->
+    <!-- ═══ СТАТУС ═══ -->
     <section id="tab-status" class="tab-page active">
         <div class="card" id="liveSetup">
-            <div class="card-title">Подключение к ПК</div>
-            <p class="hint">На ПК: SystemGuard → Telegram → <b>Publish live link</b>. Вставьте ссылку и токен. Внимание: ссылка <b>меняется при каждом Publish и перезапуске</b> — свежая сама прилетает вам в личку бота (или запросите <b>/live</b>). Вне дома: видео и экран — через этот туннель (ПК включён, приложение запущено); <b>команды работают и без туннеля</b> — при мёртвом Live приложение само скопирует команду (<code>/status</code>, <code>/cmd</code>…), вставьте её в чат с ботом, ответ придёт туда же. Скриншот без Live — команда <code>/screenshot</code> в чате.</p>
-            <input type="text" id="liveUrl" class="input mono" placeholder="https://…" autocomplete="off" autocapitalize="off" spellcheck="false">
-            <div class="row">
+            <div class="card-head"><div class="card-title">Подключение к ПК</div><div class="card-value" id="liveStateMini">—</div></div>
+            <p class="hint">На ПК: SystemGuard → Telegram → <b>Publish live link</b>. Ссылка <b>меняется при каждом Publish и перезапуске</b> — свежая прилетает в личку бота или по <code>/live</code>. Вставьте оба значения ниже (можно одним куском из чата — разберём сами).</p>
+            <div class="field">
+                <input type="text" id="liveUrl" class="input mono" placeholder="https://…" autocomplete="off" autocapitalize="off" spellcheck="false">
+                <button class="field-clear" id="urlClear" aria-label="Очистить ссылку">✕</button>
+            </div>
+            <div class="field">
                 <input type="text" id="liveToken" class="input mono" placeholder="токен" autocomplete="off" autocapitalize="off" spellcheck="false">
-                <button class="btn primary sm" id="liveConnect">Связать</button>
+                <button class="field-clear" id="tokenClear" aria-label="Очистить токен">✕</button>
             </div>
             <div class="row">
-                <button class="btn sm" id="liveTest">Проверить</button>
-                <button class="btn danger sm hidden" id="liveDisconnect">Отключить</button>
+                <button class="btn sm" id="pasteBtn" style="flex:1">Вставить</button>
+                <button class="btn primary sm" id="liveConnect" style="flex:1">Связать</button>
+            </div>
+            <div class="row">
+                <button class="btn sm" id="liveTest" style="flex:1">Проверить</button>
+                <button class="btn danger sm hidden" id="liveDisconnect" style="flex:1">Отключить</button>
             </div>
             <div class="state" id="liveState">Не связано</div>
             <div class="diag hidden" id="liveDiag"></div>
@@ -42,8 +49,8 @@
 
         <div id="livePanels" class="hidden">
             <div class="card">
-                <div class="card-title">Система · <span id="liveMachine">—</span></div>
-                <div class="meter"><div class="meter-top"><span>RAM <b id="liveRamText">—</b></span><span id="liveTime">—</span></div>
+                <div class="card-head"><div class="card-title">Система · <b id="liveMachine">—</b></div><div class="card-value" id="liveTime">—</div></div>
+                <div class="meter"><div class="meter-top"><span>RAM · <b id="liveRamText">—</b></span></div>
                     <div class="bar"><div class="fill" id="liveRamBar"></div></div></div>
                 <div class="kv" id="liveDisks">—</div>
                 <div class="kv" id="liveBatt">—</div>
@@ -51,7 +58,7 @@
                 <div class="kv" id="liveVol">—</div>
             </div>
             <div class="card">
-                <div class="card-title">Сводка (как Performance)</div>
+                <div class="card-title" style="margin-bottom:12px">Сводка</div>
                 <div class="grid-2">
                     <button class="btn sm" data-run="perf">Perf</button>
                     <button class="btn sm" data-run="sysinfo">О системе</button>
@@ -63,9 +70,9 @@
                 <pre class="out hidden" id="statusOut"></pre>
             </div>
             <div class="card">
-                <div class="card-title">Питание</div>
+                <div class="card-title" style="margin-bottom:12px">Питание</div>
                 <div class="grid-2">
-                    <button class="btn danger sm" data-run="shutdown" data-confirm="Выключить ПК через 60 сек?">Выключить</button>
+                    <button class="btn danger solid sm" data-run="shutdown" data-confirm="Выключить ПК через 60 сек?">Выключить</button>
                     <button class="btn warn sm" data-run="restart" data-confirm="Перезагрузить ПК через 60 сек?">Рестарт</button>
                     <button class="btn sm" data-run="sleep">Сон</button>
                     <button class="btn sm" data-run="hibernate">Гибернация</button>
@@ -76,13 +83,13 @@
                 </div>
                 <pre class="out hidden" id="powerOut"></pre>
                 <div class="sub">Дистанционное включение (WoL)</div>
-                <p class="hint">Работает в LAN, через роутер с пробросом WoL или VPN. ПК выключен = туннель мёртв: шлите с другого устройства в сети. В BIOS включите Wake on Magic Packet, кабель питания воткнут.</p>
+                <p class="hint">Работает в LAN, через роутер с пробросом WoL или VPN. В BIOS включите Wake on Magic Packet.</p>
                 <div class="row">
                     <input type="text" id="wolMac" class="input mono" placeholder="AA:BB:CC:DD:EE:FF" autocomplete="off" autocapitalize="off" spellcheck="false">
-                    <button class="btn primary sm" id="wolBtn">Включить</button>
+                    <button class="btn primary sm" id="wolBtn">Вкл</button>
                 </div>
                 <div class="sub">Ввод пароля Windows</div>
-                <p class="hint warn-text">Пароль печатается на экране блокировки. Только свой HTTPS-туннель. После — удалите сообщение и при утечке токена смените пароль.</p>
+                <p class="hint warn-text">Пароль печатается на экране блокировки. Только свой HTTPS-туннель.</p>
                 <div class="row">
                     <input type="password" id="unlockPass" class="input" placeholder="пароль Windows" autocomplete="off">
                     <button class="btn primary sm" id="unlockBtn">Ввести</button>
@@ -91,54 +98,106 @@
         </div>
     </section>
 
-    <!-- ═══ ЭКРАН (скрин + видео 30 FPS + камера 30 FPS) ═══ -->
+    <!-- ═══ ЭКРАН ═══ -->
     <section id="tab-screen" class="tab-page">
         <div class="card">
-            <div class="card-title">Экран ПК · <span id="screenFpsLabel">15 FPS</span></div>
-            <img id="liveScreen" class="shot" alt="экран" src="">
-            <label class="slider-label">Частота <span id="screenFpsVal">15</span> / 30 FPS</label>
-            <input type="range" min="1" max="30" value="15" id="screenFps">
+            <div class="card-head"><div class="card-title">Экран ПК</div><div class="card-value" id="screenFpsLabel">30 FPS</div></div>
+            <div class="screen-wrap" id="screenWrap">
+                <img id="liveScreen" class="shot" alt="экран" src="">
+                <div class="cursor-dot hidden" id="screenCursor"></div>
+            </div>
+            <div class="sub">Качество</div>
+            <div class="seg" id="presetSeg">
+                <button data-preset="eco">Эко</button>
+                <button data-preset="pro" class="on">Про</button>
+                <button data-preset="ultra">Ультра</button>
+            </div>
+            <label class="slider-label">Частота <span id="screenFpsVal">30</span></label>
+            <input type="range" min="1" max="60" value="30" id="screenFps">
+            <label class="slider-label">Детализация JPEG <span id="qVal">65</span></label>
+            <input type="range" min="30" max="95" value="65" id="qRange">
+            <label class="slider-label">Ширина кадра <span id="wVal">1280</span></label>
+            <input type="range" min="854" max="1920" step="1" value="1280" id="wRange">
             <div class="row">
-                <button class="btn sm" id="shotBtn">Кадр</button>
-                <button class="btn primary sm" id="mjpegBtn">Видео</button>
+                <button class="btn sm" id="shotBtn" style="flex:1">Кадр</button>
+                <button class="btn primary sm" id="mjpegBtn" style="flex:1">Видео</button>
+                <button class="btn sm" id="streamRestartBtn" title="Переподключить поток">↻</button>
                 <button class="btn danger sm" id="mjpegStop">Стоп</button>
             </div>
-            <p class="hint">Видео — MJPEG-поток внутри приложения (до 30 FPS, зависит от сети и ПК). Кадры — по токену, в чат ничего не уходит.</p>
+            <p class="hint">Тап — клик, ведите пальцем — курсор едет следом. Ультра требовательна к каналу: при фризах спуститесь на Про.</p>
         </div>
         <div class="card">
-            <div class="card-title">Камера · <span id="camFpsLabel">15 FPS</span></div>
+            <div class="card-head"><div class="card-title">Камера</div><div class="card-value" id="camFpsLabel">15 FPS</div></div>
             <img id="liveCam" class="shot hidden" alt="камера" src="">
-            <label class="slider-label">Частота <span id="camFpsVal">15</span> / 30 FPS</label>
-            <input type="range" min="1" max="30" value="15" id="camFps">
+            <label class="slider-label">Частота <span id="camFpsVal">15</span></label>
+            <input type="range" min="1" max="60" value="15" id="camFps">
             <div class="row">
-                <button class="btn sm" id="camBtn">Фото</button>
-                <button class="btn primary sm" id="camVideoBtn">Видео</button>
+                <button class="btn sm" id="camBtn" style="flex:1">Фото</button>
+                <button class="btn primary sm" id="camVideoBtn" style="flex:1">Видео</button>
                 <button class="btn danger sm" id="camStopBtn">Стоп</button>
             </div>
-            <p class="hint">Реальный FPS вебки обычно 5–12: ограничение железа (устройство открывается на каждый кадр).</p>
+            <p class="hint">Реальный FPS вебки ограничен железом (обычно 15–30).</p>
         </div>
     </section>
 
-    <!-- ═══ ПУЛЬТ (звук, яркость, медиа, приложения) ═══ -->
+    <!-- ═══ ПУЛЬТ ═══ -->
     <section id="tab-control" class="tab-page">
         <div class="card">
-            <div class="card-title">Громкость · <span id="volVal">—</span></div>
+            <label class="switch-row">
+                <span class="sw"><input type="checkbox" id="inputSwitch" checked><i></i></span>
+                <span class="sw-text"><b>Ввод с телефона</b><small>мышь и клавиатура: показ и работа</small></span>
+            </label>
+        </div>
+        <div id="inputCards">
+            <div class="card">
+                <div class="card-head"><div class="card-title">Мышь</div><div class="card-value">тачпад</div></div>
+                <div class="touchpad" id="touchpad"><span class="touchpad-hint">Ведите · тап — клик</span></div>
+                <div class="row">
+                    <button class="btn sm" id="rclickBtn" style="flex:1">ПКМ</button>
+                    <button class="btn sm" id="dblBtn" style="flex:1">2×клик</button>
+                    <button class="btn sm" id="wheelUpBtn" style="flex:1">▲</button>
+                    <button class="btn sm" id="wheelDownBtn" style="flex:1">▼</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-head"><div class="card-title">Клавиатура</div></div>
+                <div class="row">
+                    <input type="text" id="typeInput" class="input" placeholder="текст для печати…" autocomplete="off">
+                    <button class="btn primary sm" id="typeBtn">Ок</button>
+                </div>
+                <div class="keys-grid">
+                    <button class="btn sm" data-key="esc">Esc</button>
+                    <button class="btn sm" data-key="tab">Tab</button>
+                    <button class="btn sm" data-key="enter">Enter</button>
+                    <button class="btn sm" data-key="backspace">⌫</button>
+                    <button class="btn sm" data-key="up">↑</button>
+                    <button class="btn sm" data-key="down">↓</button>
+                    <button class="btn sm" data-key="alt+tab">Alt+Tab</button>
+                    <button class="btn sm" data-key="alt+f4">Alt+F4</button>
+                    <button class="btn sm" data-key="ctrl+c">Ctrl+C</button>
+                    <button class="btn sm" data-key="ctrl+v">Ctrl+V</button>
+                    <button class="btn sm" data-key="ctrl+z">Ctrl+Z</button>
+                    <button class="btn sm" data-key="win+d">Win+D</button>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-head"><div class="card-title">Громкость · <b id="volVal">—</b></div></div>
             <input type="range" min="0" max="100" value="50" id="volRange">
             <div class="row">
-                <button class="btn sm" data-run="volume" data-arg="down">−10</button>
-                <button class="btn primary sm" id="volApply">Применить</button>
-                <button class="btn sm" data-run="volume" data-arg="up">+10</button>
+                <button class="btn sm" data-run="volume" data-arg="down" style="flex:1">−10</button>
+                <button class="btn primary sm" id="volApply" style="flex:1">Применить</button>
+                <button class="btn sm" data-run="volume" data-arg="up" style="flex:1">+10</button>
                 <button class="btn sm" data-run="mute">Мут</button>
             </div>
         </div>
         <div class="card">
-            <div class="card-title">Яркость · <span id="briVal">80</span>%</div>
+            <div class="card-head"><div class="card-title">Яркость · <b id="briVal">80</b>%</div></div>
             <input type="range" min="0" max="100" value="80" id="briRange">
             <button class="btn primary sm full" id="briApply">Применить яркость</button>
-            <p class="hint">На мониторах без DDC яркость не поддерживается — приложение честно скажет.</p>
         </div>
         <div class="card">
-            <div class="card-title">Медиа</div>
+            <div class="card-title" style="margin-bottom:12px">Медиа</div>
             <div class="grid-3">
                 <button class="btn" data-run="prev">◀</button>
                 <button class="btn primary" data-run="play">▶❚❚</button>
@@ -146,35 +205,7 @@
             </div>
         </div>
         <div class="card">
-            <div class="card-title">Мышь и клавиатура</div>
-            <label class="switch-row"><input type="checkbox" id="mouseSwitch" checked> Мышь <small>тачпад, клики, колесо</small></label>
-            <img id="padScreen" class="shot" alt="экран" src="">
-            <div class="touchpad" id="touchpad"><span class="touchpad-hint">Ведите — курсор · тап — левый клик</span></div>
-            <div class="row">
-                <button class="btn sm" id="rclickBtn">ПКМ</button>
-                <button class="btn sm" id="dblBtn">2×клик</button>
-                <button class="btn sm" id="wheelUpBtn">Колесо ▲</button>
-                <button class="btn sm" id="wheelDownBtn">Колесо ▼</button>
-            </div>
-            <div class="row">
-                <input type="text" id="typeInput" class="input" placeholder="текст для печати…" autocomplete="off">
-                <button class="btn primary sm" id="typeBtn">Печать</button>
-            </div>
-            <div class="keys-grid">
-                <button class="btn sm" data-key="esc">Esc</button>
-                <button class="btn sm" data-key="tab">Tab</button>
-                <button class="btn sm" data-key="enter">Enter</button>
-                <button class="btn sm" data-key="backspace">⌫</button>
-                <button class="btn sm" data-key="alt+tab">Alt+Tab</button>
-                <button class="btn sm" data-key="alt+f4">Alt+F4</button>
-                <button class="btn sm" data-key="ctrl+c">Ctrl+C</button>
-                <button class="btn sm" data-key="ctrl+v">Ctrl+V</button>
-                <button class="btn sm" data-key="win+d">Win+D</button>
-            </div>
-            <p class="hint">Тап по кадру на вкладке Экран — клик в точку. Всё идёт по токену через туннель, ничего ставить не надо.</p>
-        </div>
-        <div class="card">
-            <div class="card-title">Приложения (как в десктопе)</div>
+            <div class="card-title" style="margin-bottom:12px">Приложения</div>
             <div class="row">
                 <input type="text" id="openName" class="input" placeholder="chrome, steam, notepad…" autocomplete="off">
                 <button class="btn primary sm" id="openBtn">Открыть</button>
@@ -187,24 +218,24 @@
         </div>
     </section>
 
-    <!-- ═══ ПК (процессы, автозагрузка, удаление, сеть, защита — зеркало) ═══ -->
+    <!-- ═══ ПК ═══ -->
     <section id="tab-pc" class="tab-page">
         <div class="card">
-            <div class="card-title">Процессы</div>
+            <div class="card-head"><div class="card-title">Процессы</div></div>
             <div class="row">
-                <button class="btn primary sm" id="procsBtn">Список</button>
-                <button class="btn sm" data-run="apps">Окна</button>
+                <button class="btn primary sm" id="procsBtn" style="flex:1">Список</button>
+                <button class="btn sm" data-run="apps" style="flex:1">Окна</button>
             </div>
             <div id="procList" class="filelist"></div>
             <pre class="out hidden" id="procOut"></pre>
         </div>
         <div class="card">
-            <div class="card-title">Автозагрузка</div>
+            <div class="card-head"><div class="card-title">Автозагрузка</div></div>
             <div class="row"><button class="btn primary sm full" id="startupBtn">Показать</button></div>
             <div id="startupList" class="filelist"></div>
         </div>
         <div class="card">
-            <div class="card-title">Программы (удаление)</div>
+            <div class="card-head"><div class="card-title">Программы</div></div>
             <div class="row">
                 <input type="text" id="uninstallName" class="input" placeholder="пусто = список, имя = удалить…" autocomplete="off">
                 <button class="btn sm" id="uninstallBtn">ОК</button>
@@ -212,7 +243,7 @@
             <div id="uninstallList" class="filelist"></div>
         </div>
         <div class="card">
-            <div class="card-title">Сеть (как вкладка Network)</div>
+            <div class="card-head"><div class="card-title">Сеть</div></div>
             <div class="grid-2">
                 <button class="btn sm" data-run="ip">IP</button>
                 <button class="btn sm" data-run="ping">Ping</button>
@@ -228,47 +259,72 @@
             <pre class="out hidden" id="netOut"></pre>
         </div>
         <div class="card">
-            <div class="card-title">Защита и обслуживание</div>
+            <div class="card-head"><div class="card-title">Защита и сервис</div></div>
             <div class="grid-2">
                 <button class="btn sm" data-run="defender_status">Defender</button>
+                <button class="btn sm" data-run="defender_scan" data-confirm="Быстрое сканирование Defender (несколько минут)?">Скан Defender</button>
                 <button class="btn sm" data-run="remote">Удал. доступ</button>
+                <button class="btn sm" data-run="rdp_on" data-confirm="Включить RDP на ПК?">RDP вкл</button>
+                <button class="btn sm" data-run="rdp_off">RDP выкл</button>
+                <button class="btn sm" data-run="game_boost" data-confirm="Завершить браузеры и ускорить?">Game Boost</button>
+                <button class="btn sm" data-run="game_killbrowsers" data-confirm="Завершить все браузеры без сохранения?">Kill браузеры</button>
                 <button class="btn sm" data-run="cleanup_info">Мусор</button>
                 <button class="btn sm" data-run="clean" data-confirm="Удалить temp-файлы без корзины?">Очистка temp</button>
                 <button class="btn sm" data-run="ram">Оптимизация RAM</button>
                 <button class="btn sm" data-run="eventlog">Журнал System</button>
                 <button class="btn sm" data-run="services">Службы</button>
-                <button class="btn sm" data-run="game_boost" data-confirm="Завершить браузеры и ускорить?">Game Boost</button>
                 <button class="btn sm" data-run="sched_list">Задачи</button>
+                <button class="btn sm" data-run="fan">Вентиляторы</button>
+                <button class="btn sm" data-run="fan_mode" data-arg="Silent">Тихий режим</button>
+                <button class="btn sm" data-run="fan_mode" data-arg="Auto">Фаны Auto</button>
             </div>
             <pre class="out hidden" id="secOut"></pre>
         </div>
     </section>
 
-    <!-- ═══ ФАЙЛЫ + ТЕРМИНАЛ ═══ -->
+    <!-- ═══ ФАЙЛЫ ═══ -->
     <section id="tab-files" class="tab-page">
         <div class="card">
-            <div class="card-title">Проводник</div>
-            <div class="row">
-                <input type="text" id="lsPath" class="input mono" value="C:\" autocomplete="off" autocapitalize="off" spellcheck="false">
-                <button class="btn primary sm" id="lsBtn">Список</button>
+            <div class="card-head"><div class="card-title">Проводник</div><div class="card-value" id="fileCount">—</div></div>
+            <div class="crumbs" id="crumbBar"></div>
+            <div class="search-row">
+                <div class="field">
+                    <input type="text" id="fileSearch" class="input" placeholder="фильтр…" autocomplete="off">
+                    <button class="field-clear" id="searchClear" aria-label="Очистить фильтр">✕</button>
+                </div>
+                <button class="icon-btn" id="backBtn" title="Назад"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg></button>
+                <button class="icon-btn" id="refreshBtn" title="Обновить"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 3v5h-5"/></svg></button>
             </div>
-            <div class="chips">
-                <button class="chip" data-ls="C:\">C:\</button>
-                <button class="chip" data-ls="D:\">D:\</button>
-                <button class="chip" data-ls="">Desktop</button>
-            </div>
+            <div class="chips" id="driveChips"></div>
             <div id="fileList" class="filelist"></div>
         </div>
         <div class="card">
-            <div class="card-title">Скачать с ПК</div>
+            <div class="card-head"><div class="card-title">Новая папка</div></div>
             <div class="row">
-                <input type="text" id="getPath" class="input mono" placeholder="C:\file.txt" autocomplete="off" autocapitalize="off" spellcheck="false">
-                <button class="btn primary sm" id="getBtn">Получить</button>
+                <input type="text" id="mkdirInput" class="input" placeholder="имя папки…" autocomplete="off">
+                <button class="btn primary sm" id="mkdirBtn">Создать</button>
             </div>
-            <p class="hint">Файл скачивается прямо в браузер (по токену). Отправка файла <b>на ПК</b> — прикрепите файл в чате с ботом, он сохранится в Desktop\TG Downloads.</p>
         </div>
         <div class="card">
-            <div class="card-title">Терминал (CMD, admin)</div>
+            <div class="card-head"><div class="card-title">На телефон</div></div>
+            <div class="row">
+                <input type="text" id="getPath" class="input mono" placeholder="C:\file.txt" autocomplete="off" autocapitalize="off" spellcheck="false">
+                <button class="btn primary sm" id="getBtn">Скачать</button>
+            </div>
+            <p class="hint">Или тапните файл в проводнике выше.</p>
+        </div>
+        <div class="card">
+            <div class="card-head"><div class="card-title">На ПК</div><div class="card-value" id="upDestLabel">—</div></div>
+            <p class="hint" style="margin-top:0">Файлы встанут в <b>текущую папку проводника</b>. Отправка из чата с ботом по-прежнему кладёт в Desktop\TG Downloads.</p>
+            <input type="file" id="uploadInput" class="hidden" multiple>
+            <div class="row" style="margin-top:8px">
+                <button class="btn primary sm" id="uploadBtn" style="flex:1">Выбрать файлы</button>
+            </div>
+            <div class="prog hidden" id="uploadProg"><i></i></div>
+            <div class="state" id="uploadState"></div>
+        </div>
+        <div class="card">
+            <div class="card-head"><div class="card-title">Терминал · CMD admin</div></div>
             <div class="row">
                 <input type="text" id="cmdInput" class="input mono" placeholder="ipconfig, tasklist, dir C:\…" autocomplete="off" autocapitalize="off" spellcheck="false">
                 <button class="btn primary sm" id="cmdBtn">Run</button>
@@ -279,61 +335,77 @@
                 <button class="chip" data-cmd="systeminfo">systeminfo</button>
             </div>
             <pre class="out hidden" id="cmdOut"></pre>
-            <p class="hint">Вывод виден здесь, кириллица без кракозябр. В чат ничего не уходит.</p>
         </div>
     </section>
 
-    <!-- ═══ ЕЩЁ (Pro, политики, настройки) ═══ -->
+    <!-- ═══ ЕЩЁ ═══ -->
     <section id="tab-more" class="tab-page">
         <div class="card">
-            <div class="card-title">SystemGuard Pro · Stars</div>
-            <p class="hint">Оплата — Telegram Stars в чате с ботом. Деньги идут на баланс бота, вывод — владелец <b>5810097604</b> через Fragment. Нажмите тариф — команда скопируется, вставьте её в чат с ботом (приложение не закроется).</p>
-        </div>
-        <div class="plan"><div><b>Monthly</b><span>30 дней</span></div><button class="btn gold sm" data-copy="/license monthly">300 Stars</button></div>
-        <div class="plan"><div><b>Half-Year</b><span>6 месяцев</span></div><button class="btn gold sm" data-copy="/license halfyear">1000 Stars</button></div>
-        <div class="plan"><div><b>Yearly</b><span>12 месяцев</span></div><button class="btn gold sm" data-copy="/license yearly">1800 Stars</button></div>
-        <div class="plan featured"><div><b>Lifetime</b><span>навсегда</span></div><button class="btn gold sm" data-copy="/license lifetime">3000 Stars</button></div>
-
-        <div class="card">
-            <div class="card-title">Политики и безопасность</div>
-            <div class="grid-2">
-                <button class="btn sm" data-policy="privacy">Privacy</button>
-                <button class="btn sm" data-policy="terms">Terms</button>
-                <button class="btn sm full" data-policy="safety">Что нельзя делать</button>
+            <div class="card-head"><div class="card-title">Соединение</div><div class="card-value" id="moreConnVal">—</div></div>
+            <div class="kv" id="moreServer">—</div>
+            <div class="row" style="margin-top:10px">
+                <button class="btn sm" id="copyLinkBtn" style="flex:1">Копировать ссылку</button>
+                <button class="btn sm" id="copyDiagBtn" style="flex:1">Диагностика</button>
             </div>
-            <pre class="out hidden" id="policyOut"></pre>
         </div>
-
         <div class="card">
-            <div class="card-title">Настройки live</div>
+            <div class="card-head"><div class="card-title">Оформление</div></div>
+            <label class="switch-row">
+                <span class="sw"><input type="checkbox" id="themeSwitch"><i></i></span>
+                <span class="sw-text"><b>Светлая тема</b><small>по умолчанию — тёмный пульт</small></span>
+            </label>
+            <label class="switch-row">
+                <span class="sw"><input type="checkbox" id="hapSwitch" checked><i></i></span>
+                <span class="sw-text"><b>Вибрация</b><small>отклик на нажатия</small></span>
+            </label>
+        </div>
+        <div class="card">
+            <div class="card-head"><div class="card-title">Опрос</div></div>
             <div class="setrow"><span>Статы, сек</span><input type="number" id="setStatusSec" class="input num" min="1" max="30" step="0.5"></div>
-            <div class="setrow"><span>Скриншоты, сек</span><input type="number" id="setShotSec" class="input num" min="2" max="60" step="1"></div>
-            <div class="setrow"><span>Видео FPS (1–30)</span><input type="number" id="setFps" class="input num" min="1" max="30" step="1"></div>
-            <div class="setrow"><span>Качество JPEG</span><input type="number" id="setQ" class="input num" min="30" max="85" step="5"></div>
+            <div class="setrow"><span>Кадр экрана, сек</span><input type="number" id="setShotSec" class="input num" min="2" max="60" step="1"></div>
             <div class="row">
-                <button class="btn primary sm" id="setSave">Сохранить</button>
-                <button class="btn danger sm" id="setReset">Сбросить всё</button>
+                <button class="btn primary sm" id="setSave" style="flex:1">Сохранить</button>
             </div>
             <div class="state" id="setInfo"></div>
         </div>
-
         <div class="card">
-            <div class="card-title">О приложении</div>
-            <p class="hint">SystemGuard Remote v4 — полное зеркало десктопа: статус, экран 30 FPS, камера 30 FPS, пульт, процессы, автозагрузка, программы, сеть, защита, файлы, терминал, питание, WoL, ввод пароля, Pro и политики. Будущее: Android-приложение на том же HTTP API (токен + HTTPS-туннель).</p>
+            <div class="card-head"><div class="card-title">SystemGuard Pro</div></div>
+            <p class="hint" style="margin-top:0">Оплата — Stars в чате с ботом. Тап — команда скопируется, вставьте её в чат.</p>
+        </div>
+        <div class="plan"><div><b>Monthly</b><span>30 дней</span></div><button class="btn gold sm" data-copy="/license monthly">300 ★</button></div>
+        <div class="plan"><div><b>Half-Year</b><span>6 месяцев</span></div><button class="btn gold sm" data-copy="/license halfyear">1000 ★</button></div>
+        <div class="plan"><div><b>Yearly</b><span>12 месяцев</span></div><button class="btn gold sm" data-copy="/license yearly">1800 ★</button></div>
+        <div class="plan featured"><div><b>Lifetime</b><span>навсегда</span></div><button class="btn gold sm" data-copy="/license lifetime">3000 ★</button></div>
+        <div class="card">
+            <div class="card-head"><div class="card-title">Политики</div></div>
+            <div class="grid-2">
+                <button class="btn sm" data-policy="privacy">Privacy</button>
+                <button class="btn sm" data-policy="terms">Terms</button>
+            </div>
+            <div class="row" style="margin-top:8px"><button class="btn sm full" data-policy="safety">Что нельзя делать</button></div>
+            <pre class="out hidden" id="policyOut"></pre>
+        </div>
+        <div class="card">
+            <div class="card-head"><div class="card-title" style="color:var(--red)">Опасная зона</div></div>
+            <div class="row"><button class="btn danger sm full" id="setReset">Сбросить всё и отключиться</button></div>
+        </div>
+        <div class="card">
+            <div class="card-head"><div class="card-title">О приложении</div><div class="card-value">V6</div></div>
+            <p class="hint" style="margin-top:0">Пульт, экран и камера до 60 FPS, полный проводник с загрузкой в обе стороны, процессы, сеть, питание, WoL. Видео идёт MJPEG по вашему HTTPS-туннелю: ноль лишних серверов, работает везде, где открывается Telegram.</p>
         </div>
     </section>
 
     <nav class="tabbar">
-        <button class="tab active" data-tab="status">Статус</button>
-        <button class="tab" data-tab="screen">Экран</button>
-        <button class="tab" data-tab="control">Пульт</button>
-        <button class="tab" data-tab="pc">ПК</button>
-        <button class="tab" data-tab="files">Файлы</button>
-        <button class="tab" data-tab="more">Ещё</button>
+        <button class="tab active" data-tab="status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Статус</button>
+        <button class="tab" data-tab="screen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M9 20h6M12 16v4"/></svg>Экран</button>
+        <button class="tab" data-tab="control"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 8h16M4 12h16M4 16h16"/><circle cx="9" cy="8" r="2" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/><circle cx="7" cy="16" r="2" fill="currentColor" stroke="none"/></svg>Пульт</button>
+        <button class="tab" data-tab="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg>ПК</button>
+        <button class="tab" data-tab="files"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Файлы</button>
+        <button class="tab" data-tab="more"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>Ещё</button>
     </nav>
 
     <div class="toast-wrap" id="toasts"></div>
 </div>
-<script src="app.js?v=9"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>
