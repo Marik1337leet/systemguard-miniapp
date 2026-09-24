@@ -9,7 +9,9 @@
  * взлетят: им нужен UDP и публичный TURN/медиасервер, а телефон и ПК
  * сидят за NAT — P2P без своего TURN не соберётся, в браузере SRT
  * вообще не играет. Вместо этого: честные пресеты качества до
- * 1920px / q95 / 60 FPS + перезапуск потока одной кнопкой. */
+ * 2560px / q95 / 60 FPS + PNG-стиллы без потерь + перезапуск потока
+ * одной кнопкой. Сервер не шлёт одинаковые кадры подряд (дедупликация),
+ * поэтому статика почти не ест трафик туннеля. */
 (function () {
     'use strict';
 
@@ -35,7 +37,7 @@
     var PRESETS = {
         eco:   { fps: 12, q: 45, w: 854 },
         pro:   { fps: 30, q: 65, w: 1280 },
-        ultra: { fps: 60, q: 90, w: 1920 }
+        ultra: { fps: 60, q: 95, w: 2560 }
     };
     var S = {
         statusSec: 2.5, shotSec: 3, fps: 30, q: 65,
@@ -50,10 +52,10 @@
                 if (c.statusSec >= 1 && c.statusSec <= 30) S.statusSec = c.statusSec;
                 if (c.shotSec >= 2 && c.shotSec <= 60) S.shotSec = c.shotSec;
                 if (c.fps >= 1 && c.fps <= 60) S.fps = c.fps;
-                if (c.q >= 30 && c.q <= 95) S.q = c.q;
+                if (c.q >= 30 && c.q <= 100) S.q = c.q;
                 if (c.screenFps >= 1 && c.screenFps <= 60) S.screenFps = c.screenFps;
                 if (c.camFps >= 1 && c.camFps <= 60) S.camFps = c.camFps;
-                if (c.screenW >= 320 && c.screenW <= 1920) S.screenW = c.screenW;
+                if (c.screenW >= 320 && c.screenW <= 3840) S.screenW = c.screenW;
                 if (PRESETS[c.preset]) S.preset = c.preset;
                 if (typeof c.inputOn === 'boolean') S.inputOn = c.inputOn;
                 if (c.theme === 'light' || c.theme === 'dark') S.theme = c.theme;
@@ -353,7 +355,7 @@
             if (img && this.on) {
                 img.classList.remove('hidden');
                 delete img.dataset.video;
-                img.src = this.q('/api/cam.jpg?w=960&q=' + S.q) + '&t=' + Date.now();
+                img.src = this.q('/api/cam.jpg?w=' + Math.min(S.screenW, 1920) + '&q=' + S.q) + '&t=' + Date.now();
             }
         },
         startCamVideo: function () {
@@ -361,7 +363,7 @@
             if (!img || !this.on) return;
             img.classList.remove('hidden');
             img.dataset.video = '1';
-            img.src = this.q('/api/cammjpeg?fps=' + S.camFps + '&q=' + S.q + '&w=960');
+            img.src = this.q('/api/cammjpeg?fps=' + S.camFps + '&q=' + S.q + '&w=' + Math.min(S.screenW, 1920));
         },
         stopCamVideo: function () {
             var img = $('liveCam');
