@@ -35,6 +35,13 @@
                 <input type="text" id="liveToken" class="input mono" placeholder="токен" autocomplete="off" autocapitalize="off" spellcheck="false">
                 <button class="field-clear" id="tokenClear" aria-label="Очистить токен">✕</button>
             </div>
+            <p class="hint">Видео через VPS (максимальное качество, стабильная ссылка): на ПК во вкладке Telegram скопируйте <b>VPS relay</b> и <b>HWID</b> в поля ниже. Пусто — видео идёт через туннель как раньше.</p>
+            <div class="field">
+                <input type="text" id="relayBase" class="input mono" placeholder="VPS relay: https://…" autocomplete="off" autocapitalize="off" spellcheck="false">
+            </div>
+            <div class="field">
+                <input type="text" id="relayHwid" class="input mono" placeholder="HWID этого ПК" autocomplete="off" autocapitalize="off" spellcheck="false">
+            </div>
             <div class="row">
                 <button class="btn sm" id="pasteBtn" style="flex:1">Вставить</button>
                 <button class="btn primary sm" id="liveConnect" style="flex:1">Связать</button>

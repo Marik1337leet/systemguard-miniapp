@@ -130,13 +130,30 @@
     /* ── LIVE-клиент ── */
     var Live = {
         base: '', token: '', on: false,
+        relayBase: '', relayHwid: '',
         pollTimer: null, shotTimer: null,
         init: function () {
             var u = ($('liveUrl') && $('liveUrl').value) || load('sg_live_url');
             var t = ($('liveToken') && $('liveToken').value) || load('sg_live_token');
+            var rb = ($('relayBase') && $('relayBase').value) || load('sg_relay_base');
+            var rh = ($('relayHwid') && $('relayHwid').value) || load('sg_relay_hwid');
             if (u && $('liveUrl')) $('liveUrl').value = u;
             if (t && $('liveToken')) $('liveToken').value = t;
+            if (rb && $('relayBase')) $('relayBase').value = rb;
+            if (rh && $('relayHwid')) $('relayHwid').value = rh;
+            this.relayBase = this.cleanUrl(rb || '');
+            this.relayHwid = String(rh || '').trim().toLowerCase();
+            if ($('relayBase')) $('relayBase').value = this.relayBase;
+            if ($('relayHwid')) $('relayHwid').value = this.relayHwid;
             if (u && t) this.connect(true);
+        },
+        relayOn: function () { return !!(this.relayBase && this.relayHwid); },
+        rq: function (path) {
+            var sep = path.indexOf('?') >= 0 ? '&' : '?';
+            return this.relayBase + path + sep + 'token=' + encodeURIComponent(this.token);
+        },
+        relayArgs: function (kind, extra) {
+            return 'hwid=' + encodeURIComponent(this.relayHwid) + '&kind=' + kind + (extra || '');
         },
         q: function (path) {
             var sep = path.indexOf('?') >= 0 ? '&' : '?';
@@ -216,11 +233,17 @@
                 return;
             }
             self.base = u; self.token = t;
+            var rb = self.cleanUrl(($('relayBase') && $('relayBase').value) || '');
+            var rh = String(($('relayHwid') && $('relayHwid').value) || '').trim().toLowerCase();
+            if ($('relayBase')) $('relayBase').value = rb;
+            if ($('relayHwid')) $('relayHwid').value = rh;
+            self.relayBase = rb; self.relayHwid = rh;
             self.setState('Проверка связи… (туннель может просыпаться до 20 сек)'); self.diag('');
             self.api('/api/status', { timeout: 20000 }).then(function (s) {
                 if (!s || s.ok === false) throw new Error((s && s.error) || 'bad reply');
                 self.on = true;
                 store('sg_live_url', u); store('sg_live_token', t);
+                store('sg_relay_base', rb); store('sg_relay_hwid', rh);
                 self.renderStatus(s);
                 self.startPoll();
                 self.refreshShot();
@@ -325,10 +348,15 @@
             var img = $('liveScreen');
             if (img && this.on) {
                 delete img.dataset.video;
-                img.src = this.q('/api/shot.jpg?w=' + S.screenW + '&q=' + S.q) + '&t=' + Date.now();
+                if (this.relayOn())
+                    img.src = this.rq('/api/relay/shot?' + this.relayArgs('screen')) + '&t=' + Date.now();
+                else
+                    img.src = this.q('/api/shot.jpg?w=' + S.screenW + '&q=' + S.q) + '&t=' + Date.now();
             }
         },
         screenVideoUrl: function () {
+            if (this.relayOn())
+                return this.rq('/api/relay/live?' + this.relayArgs('screen', '&fps=' + S.screenFps));
             return this.q('/api/mjpeg?fps=' + S.screenFps + '&q=' + S.q + '&w=' + S.screenW);
         },
         startScreenVideo: function () {
@@ -355,7 +383,10 @@
             if (img && this.on) {
                 img.classList.remove('hidden');
                 delete img.dataset.video;
-                img.src = this.q('/api/cam.jpg?w=' + Math.min(S.screenW, 1920) + '&q=' + S.q) + '&t=' + Date.now();
+                if (this.relayOn())
+                    img.src = this.rq('/api/relay/shot?' + this.relayArgs('cam')) + '&t=' + Date.now();
+                else
+                    img.src = this.q('/api/cam.jpg?w=' + Math.min(S.screenW, 1920) + '&q=' + S.q) + '&t=' + Date.now();
             }
         },
         startCamVideo: function () {
@@ -363,7 +394,10 @@
             if (!img || !this.on) return;
             img.classList.remove('hidden');
             img.dataset.video = '1';
-            img.src = this.q('/api/cammjpeg?fps=' + S.camFps + '&q=' + S.q + '&w=' + Math.min(S.screenW, 1920));
+            if (this.relayOn())
+                img.src = this.rq('/api/relay/live?' + this.relayArgs('cam', '&fps=' + S.camFps));
+            else
+                img.src = this.q('/api/cammjpeg?fps=' + S.camFps + '&q=' + S.q + '&w=' + Math.min(S.screenW, 1920));
         },
         stopCamVideo: function () {
             var img = $('liveCam');
